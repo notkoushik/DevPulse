@@ -207,7 +207,7 @@ class AppBadge {
   final String condition;
   final bool unlocked;
   final Color color;
-  final int progress;
+  final double progress;
 
   const AppBadge({
     required this.id,

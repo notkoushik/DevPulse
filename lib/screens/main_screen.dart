@@ -1,6 +1,9 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
+import '../data/data_provider.dart';
 import 'dashboard_screen.dart';
 import 'github_screen.dart';
 import 'leetcode_screen.dart';
@@ -16,6 +19,19 @@ class MainScreen extends StatefulWidget {
 
 class _MainScreenState extends State<MainScreen> {
   int _currentIndex = 0;
+  late final PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController(initialPage: _currentIndex);
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   final _screens = const [
     DashboardScreen(),
@@ -28,16 +44,73 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.of(context);
+    final provider = context.watch<DataProvider>();
+
+    Color auraColor = DevPulseColors.primary;
+    if (!provider.isLoading && provider.userData != null) {
+      if (_currentIndex == 1) {
+        final commits = provider.githubStats?.todayCommits ?? 0;
+        auraColor = commits > 2 ? DevPulseColors.success : DevPulseColors.primary;
+      } else if (_currentIndex == 2) {
+        final solved = provider.leetcodeStats?.weeklyProgress.last.solved ?? 0;
+        auraColor = solved > 0 ? DevPulseColors.warning : DevPulseColors.primary;
+      } else if (_currentIndex == 3) {
+        auraColor = DevPulseColors.danger;
+      } else if (_currentIndex == 4) {
+        auraColor = DevPulseColors.info;
+      }
+    }
 
     return Scaffold(
       backgroundColor: theme.bg,
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
+      body: Stack(
+        children: [
+          // Dynamic Background Aura
+          AnimatedPositioned(
+            duration: const Duration(milliseconds: 700),
+            curve: Curves.easeInOutCubic,
+            top: -150,
+            left: (_currentIndex * 60.0) - 100,
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 700),
+              curve: Curves.easeInOutCubic,
+              width: 500,
+              height: 500,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    auraColor.withOpacity(0.12),
+                    Colors.transparent,
+                  ],
+                ),
+              ),
+            ),
+          ),
+          SafeArea(
+            bottom: false,
+            child: PageView(
+              controller: _pageController,
+              onPageChanged: (index) {
+                setState(() => _currentIndex = index);
+              },
+              physics: const BouncingScrollPhysics(),
+              children: _screens,
+            ),
+          ),
+        ],
       ),
       bottomNavigationBar: _BottomNav(
         currentIndex: _currentIndex,
-        onTap: (i) => setState(() => _currentIndex = i),
+        onTap: (i) {
+          if (i != _currentIndex) {
+            _pageController.animateToPage(
+              i,
+              duration: const Duration(milliseconds: 400),
+              curve: Curves.easeOutCubic,
+            );
+          }
+        },
         theme: theme,
       ),
     );
@@ -120,7 +193,16 @@ class _BottomNav extends StatelessWidget {
                                 color: isActive
                                     ? theme.navActive
                                     : theme.navInactive,
-                              ),
+                              )
+                                  .animate(target: isActive ? 1 : 0)
+                                  .scaleXY(
+                                      begin: 1.0,
+                                      end: 1.2,
+                                      duration: 300.ms,
+                                      curve: Curves.easeOutBack)
+                                  .shimmer(
+                                      duration: 500.ms,
+                                      color: theme.navActive.withOpacity(0.5)),
                               const SizedBox(height: 4),
                               Text(
                                 item.label.toUpperCase(),
@@ -131,7 +213,11 @@ class _BottomNav extends StatelessWidget {
                                       ? theme.textTertiary
                                       : theme.navInactive,
                                 ),
-                              ),
+                              )
+                                  .animate(target: isActive ? 1 : 0)
+                                  .fadeIn(duration: 200.ms)
+                                  .slideY(
+                                      begin: 0.2, end: 0, duration: 200.ms),
                             ],
                           ),
                         ),

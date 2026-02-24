@@ -1,14 +1,14 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_provider.dart';
-import '../data/mock_data.dart' as data;
+import '../data/data_provider.dart';
 import '../widgets/glass_card.dart';
 
-void _showWeeklyReport(BuildContext context) {
-  final report = data.weeklyReport;
-
+void _showWeeklyReport(BuildContext context, dynamic report) {
   showDialog(
     context: context,
     barrierColor: Colors.black54,
@@ -244,7 +244,7 @@ Widget _reportStatCell(
   return Container(
     padding: const EdgeInsets.all(14),
     decoration: BoxDecoration(
-      color: t.surfaceLight,
+      color: t.surfaceElevated,
       borderRadius: BorderRadius.circular(12),
       border: Border.all(color: t.borderSubtle),
     ),
@@ -289,18 +289,67 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = AppTheme.of(context);
     final themeProvider = context.watch<ThemeProvider>();
-    final user = data.userData;
-    final lcStats = data.leetcodeStats;
-    final badges = data.badges;
-    final report = data.weeklyReport;
+    final provider = context.watch<DataProvider>();
 
-    return Scaffold(
-      backgroundColor: theme.bg,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
-          child: Column(
-            children: [
+    if (provider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (provider.errorMessage != null) {
+      return Center(
+        child: Text(
+          'Error loading data: ${provider.errorMessage}',
+          style: TextStyle(color: theme.textSecondary),
+        ),
+      );
+    }
+
+    final user = provider.userData!;
+    final lcStats = provider.leetcodeStats!;
+    final badges = provider.badges;
+    final report = provider.weeklyReport!;
+
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverAppBar(
+          expandedHeight: 120.0,
+          pinned: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                title: Text(
+                  'Profile',
+                  style: GoogleFonts.instrumentSerif(
+                    fontSize: 28,
+                    fontStyle: FontStyle.italic,
+                    color: theme.text,
+                  ),
+                ),
+                background: Padding(
+                  padding: const EdgeInsets.only(left: 20, top: 40),
+                  child: Text(
+                    'SETTINGS & STATS',
+                    style: TextStyle(
+                      fontSize: 11,
+                      letterSpacing: 1.2,
+                      color: theme.textMuted,
+                    ),
+                  ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.2),
+                ),
+              ),
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.symmetric(horizontal: 20),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              const SizedBox(height: 16),
               // ── 1. Profile Header ──
               _buildProfileHeader(context, theme, user),
               const SizedBox(height: 24),
@@ -333,11 +382,11 @@ class ProfileScreen extends StatelessWidget {
                   color: theme.textInvisible,
                 ),
               ),
-              const SizedBox(height: 16),
-            ],
+              const SizedBox(height: 32),
+            ].animate(interval: 50.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1)),
           ),
         ),
-      ),
+      ],
     );
   }
 
@@ -514,7 +563,7 @@ class ProfileScreen extends StatelessWidget {
                 ),
               ),
               GestureDetector(
-                onTap: () => _showWeeklyReport(context),
+                onTap: () => _showWeeklyReport(context, report),
                 child: Text(
                   'Expand >',
                   style: GoogleFonts.inter(

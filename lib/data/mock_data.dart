@@ -198,13 +198,13 @@ const categoryStreaks = {
 };
 
 const badges = [
-  AppBadge(id: 'fire7', icon: 'flame', label: 'On Fire', condition: '7-day streak', unlocked: true, color: Color(0xFFE8646A), progress: 100),
-  AppBadge(id: 'consistent', icon: 'zap', label: 'Consistent', condition: '30-day streak', unlocked: true, color: Color(0xFFF0C95C), progress: 100),
-  AppBadge(id: 'solver50', icon: 'brain', label: 'Problem Solver', condition: '50 LC solved', unlocked: true, color: Color(0xFF8B72FF), progress: 100),
-  AppBadge(id: 'prolific', icon: 'rocket', label: 'Prolific', condition: '100 commits', unlocked: true, color: Color(0xFF34D1A0), progress: 100),
-  AppBadge(id: 'century', icon: 'trophy', label: 'Centurion', condition: '100-day streak', unlocked: false, color: Color(0xFF6AB8E8), progress: 47),
-  AppBadge(id: 'hard100', icon: 'star', label: 'Hard Grinder', condition: '100 LC Hard', unlocked: false, color: Color(0xFFE8646A), progress: 44),
-  AppBadge(id: 'legend', icon: 'diamond', label: 'Legend', condition: '365-day streak', unlocked: false, color: Color(0xFFF0C95C), progress: 13),
+  AppBadge(id: 'fire7', icon: 'flame', label: 'On Fire', condition: '7-day streak', unlocked: true, color: Color(0xFFE8646A), progress: 1.0),
+  AppBadge(id: 'consistent', icon: 'zap', label: 'Consistent', condition: '30-day streak', unlocked: true, color: Color(0xFFF0C95C), progress: 1.0),
+  AppBadge(id: 'solver50', icon: 'brain', label: 'Problem Solver', condition: '50 LC solved', unlocked: true, color: Color(0xFF8B72FF), progress: 1.0),
+  AppBadge(id: 'prolific', icon: 'rocket', label: 'Prolific', condition: '100 commits', unlocked: true, color: Color(0xFF34D1A0), progress: 1.0),
+  AppBadge(id: 'century', icon: 'trophy', label: 'Centurion', condition: '100-day streak', unlocked: false, color: Color(0xFF6AB8E8), progress: 0.47),
+  AppBadge(id: 'hard100', icon: 'star', label: 'Hard Grinder', condition: '100 LC Hard', unlocked: false, color: Color(0xFFE8646A), progress: 0.44),
+  AppBadge(id: 'legend', icon: 'diamond', label: 'Legend', condition: '365-day streak', unlocked: false, color: Color(0xFFF0C95C), progress: 0.13),
 ];
 
 const weeklyReport = WeeklyReport(

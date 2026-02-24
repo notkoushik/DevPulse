@@ -1,8 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
-import '../data/mock_data.dart' as data;
+import '../data/data_provider.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/contribution_grid.dart';
 
@@ -12,37 +15,71 @@ class GitHubScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.of(context);
-    final stats = data.githubStats;
+    final provider = context.watch<DataProvider>();
+
+    if (provider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (provider.errorMessage != null) {
+      return Center(
+        child: Text(
+          'Error loading data: ${provider.errorMessage}',
+          style: TextStyle(color: theme.textSecondary),
+        ),
+      );
+    }
+
+    final stats = provider.githubStats!;
     final weeklyCommits = stats.weeklyCommits;
     final weekTotal =
         weeklyCommits.fold<int>(0, (sum, day) => sum + day.commits);
     final weekAvg = (weekTotal / 7).round();
     final repos = stats.recentRepos;
+    final username = provider.userData?.username ?? '';
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // -- Header --
-          Text(
-            '@notkoushik',
-            style: TextStyle(
-              fontSize: 11,
-              letterSpacing: 1.5,
-              color: theme.textMuted,
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverAppBar(
+          expandedHeight: 120.0,
+          pinned: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                title: Text(
+                  'GitHub',
+                  style: GoogleFonts.instrumentSerif(
+                    fontSize: 28,
+                    fontStyle: FontStyle.italic,
+                    color: theme.text,
+                  ),
+                ),
+                background: Padding(
+                  padding: const EdgeInsets.only(left: 20, top: 40),
+                  child: Text(
+                    '@$username',
+                    style: TextStyle(
+                      fontSize: 11,
+                      letterSpacing: 1.5,
+                      color: theme.textMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.2),
+                ),
+              ),
             ),
           ),
-          const SizedBox(height: 4),
-          Text(
-            'GitHub',
-            style: GoogleFonts.instrumentSerif(
-              fontSize: 28,
-              fontStyle: FontStyle.italic,
-              color: theme.text,
-            ),
-          ),
-          const SizedBox(height: 20),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.only(left: 20, right: 20, bottom: 32),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              const SizedBox(height: 16),
 
           // -- Key Numbers (2-column) --
           Row(
@@ -360,7 +397,7 @@ class GitHubScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 16),
                 ContributionGrid(
-                  contributions: data.githubStats.monthlyContributions
+                  contributions: stats.monthlyContributions
                       .map((c) => ContributionData(
                             date: c.date,
                             count: c.count,
@@ -381,98 +418,98 @@ class GitHubScreen extends StatelessWidget {
               style: TextStyle(
                 fontSize: 10,
                 letterSpacing: 1.5,
-                color: theme.textMuted,
+                color: theme.textDim,
               ),
             ),
           ),
           const SizedBox(height: 12),
-          ...repos.map((repo) {
-            return Container(
-              padding:
-                  const EdgeInsets.symmetric(vertical: 14, horizontal: 4),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(
-                    color: theme.borderSubtle,
-                    width: 0.5,
+          ListView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: repos.length,
+            itemBuilder: (context, index) {
+              final repo = repos[index];
+              return Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: GlassCard(
+                  delay: 0.5 + (index * 0.1),
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.book,
+                                size: 14,
+                                color: theme.textSecondary,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                repo.name,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: theme.text,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: repo.languageColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            repo.language,
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: theme.textMuted,
+                            ),
+                          ),
+                          const SizedBox(width: 16),
+                          Icon(Icons.star_border,
+                              size: 12, color: theme.textMuted),
+                          const SizedBox(width: 4),
+                          Text(
+                            '${repo.stars}',
+                            style: TextStyle(
+                              fontSize: 11,
+                              color: theme.textMuted,
+                            ),
+                          ),
+                          const Spacer(),
+                          Text(
+                            repo.lastActive,
+                            style: TextStyle(
+                              fontSize: 10,
+                              color: theme.textGhost,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          repo.name,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: theme.textSecondary,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        Row(
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: _getLanguageColor(repo.language),
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              repo.language,
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: theme.textMuted,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Icon(
-                              Icons.star,
-                              size: 10,
-                              color: DevPulseColors.warning,
-                            ),
-                            const SizedBox(width: 3),
-                            Text(
-                              '${repo.stars}',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: theme.textMuted,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Text(
-                              '${repo.commits} commits',
-                              style: TextStyle(
-                                fontSize: 10,
-                                color: theme.textDim,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                  Text(
-                    repo.lastActive,
-                    style: TextStyle(
-                      fontSize: 10,
-                      color: theme.textGhost,
-                    ),
-                  ),
-                ],
-              ),
-            );
-          }),
-          const SizedBox(height: 40),
-        ],
-      ),
+              );
+            },
+          ),
+        ].animate(interval: 50.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1)),
+          ),
+        ),
+      ],
     );
   }
 

@@ -1,7 +1,10 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
-import '../data/mock_data.dart' as data;
+import '../data/data_provider.dart';
 import '../data/models.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/progress_ring.dart';
@@ -21,22 +24,40 @@ class DashboardScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.of(context);
+    final provider = context.watch<DataProvider>();
 
-    final streak = data.userData.streak;
-    final longestStreak = data.userData.longestStreak;
-    final todayCommits = data.githubStats.todayCommits;
-    final yesterdayCommits = data.githubStats.weeklyCommits[5].commits;
-    final totalRepos = data.userData.totalRepos;
-    final totalStars = data.userData.totalStars;
-    final weeklyCommits = data.githubStats.weeklyCommits;
+    if (provider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-    final lcToday = data.leetcodeStats.weeklyProgress[6].solved;
-    final lcYesterday = data.leetcodeStats.weeklyProgress[5].solved;
-    final totalSolved = data.leetcodeStats.totalSolved;
-    final weeklyProgress = data.leetcodeStats.weeklyProgress;
+    if (provider.errorMessage != null) {
+      return Center(
+        child: Text(
+          'Error loading data: ${provider.errorMessage}',
+          style: TextStyle(color: theme.textSecondary),
+        ),
+      );
+    }
 
-    final goals = data.goals;
-    final activityFeed = data.activityFeed;
+    final userData = provider.userData!;
+    final githubStats = provider.githubStats!;
+    final leetcodeStats = provider.leetcodeStats!;
+
+    final streak = userData.streak;
+    final longestStreak = userData.longestStreak;
+    final todayCommits = githubStats.todayCommits;
+    final yesterdayCommits = githubStats.weeklyCommits[5].commits;
+    final totalRepos = userData.totalRepos;
+    final totalStars = userData.totalStars;
+    final weeklyCommits = githubStats.weeklyCommits;
+
+    final lcToday = leetcodeStats.weeklyProgress[6].solved;
+    final lcYesterday = leetcodeStats.weeklyProgress[5].solved;
+    final totalSolved = leetcodeStats.totalSolved;
+    final weeklyProgress = leetcodeStats.weeklyProgress;
+
+    final goals = provider.goals;
+    final activityFeed = provider.activityFeed;
 
     final completedGoals = goals.where((g) => g.completed).length;
     final totalGoals = goals.length;
@@ -48,102 +69,111 @@ class DashboardScreen extends StatelessWidget {
         ? (streak / longestStreak * 100).clamp(0.0, 100.0)
         : 0.0;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // ── 1. Header ──
-          _buildHeader(theme),
-          const SizedBox(height: 24),
-
-          // ── 2. Daily Briefing Banner ──
-          _buildDailyBriefing(
-            theme,
-            yesterdayCommits: yesterdayCommits,
-            lcYesterday: lcYesterday,
-            streak: streak,
-          ),
-          const SizedBox(height: 16),
-
-          // ── 3. Streak Card ──
-          _buildStreakCard(
-            theme,
-            streak: streak,
-            longestStreak: longestStreak,
-            streakProgress: streakProgress,
-          ),
-          const SizedBox(height: 16),
-
-          // ── 4. Stat Tiles ──
-          _buildStatTiles(
-            theme,
-            todayCommits: todayCommits,
-            lcToday: lcToday,
-            totalSolved: totalSolved,
-            totalRepos: totalRepos,
-            totalStars: totalStars,
-            completedGoals: completedGoals,
-            totalGoals: totalGoals,
-          ),
-          const SizedBox(height: 16),
-
-          // ── 5. Pomodoro Quick Access ──
-          _buildPomodoroQuickAccess(context, theme),
-          const SizedBox(height: 16),
-
-          // ── 6. Today's Progress ──
-          _buildTodaysProgress(
-            theme,
-            goalProgress: goalProgress,
-            goalPct: goalPct,
-            todayCommits: todayCommits,
-            lcToday: lcToday,
-          ),
-          const SizedBox(height: 16),
-
-          // ── 7. 7-Day Activity Chart ──
-          _buildWeeklyActivityChart(
-            theme,
-            weeklyCommits: weeklyCommits,
-            weeklyProgress: weeklyProgress,
-          ),
-          const SizedBox(height: 24),
-
-          // ── 8. Activity Feed ──
-          _buildActivityFeed(theme, activityFeed: activityFeed),
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
-  // ── 1. Header ──
-  Widget _buildHeader(DevPulseTheme theme) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'SUNDAY, FEB 22',
-          style: TextStyle(
-            fontSize: 11,
-            letterSpacing: 1.5,
-            color: theme.textMuted,
-            fontWeight: FontWeight.w500,
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverAppBar(
+          expandedHeight: 120.0,
+          pinned: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          flexibleSpace: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                title: Text(
+                  'Good evening, ${userData.name}',
+                  style: GoogleFonts.instrumentSerif(
+                    fontSize: 24,
+                    fontStyle: FontStyle.italic,
+                    color: theme.text,
+                  ),
+                ),
+                background: Padding(
+                  padding: const EdgeInsets.only(left: 20, top: 40),
+                  child: Text(
+                    'SUNDAY, FEB 22',
+                    style: TextStyle(
+                      fontSize: 11,
+                      letterSpacing: 1.5,
+                      color: theme.textMuted,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.2),
+                ),
+              ),
+            ),
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          'Good evening, ${data.userData.name}',
-          style: GoogleFonts.instrumentSerif(
-            fontSize: 28,
-            fontStyle: FontStyle.italic,
-            color: theme.text,
+        SliverPadding(
+          padding: const EdgeInsets.only(left: 20, right: 20, bottom: 32),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              const SizedBox(height: 16),
+              // ── 2. Daily Briefing Banner ──
+              _buildDailyBriefing(
+                theme,
+                yesterdayCommits: yesterdayCommits,
+                lcYesterday: lcYesterday,
+                streak: streak,
+              ),
+              const SizedBox(height: 16),
+
+              // ── 3. Streak Card ──
+              _buildStreakCard(
+                theme,
+                streak: streak,
+                longestStreak: longestStreak,
+                streakProgress: streakProgress,
+              ),
+              const SizedBox(height: 16),
+
+              // ── 4. Stat Tiles ──
+              _buildStatTiles(
+                theme,
+                todayCommits: todayCommits,
+                lcToday: lcToday,
+                totalSolved: totalSolved,
+                totalRepos: totalRepos,
+                totalStars: totalStars,
+                completedGoals: completedGoals,
+                totalGoals: totalGoals,
+              ),
+              const SizedBox(height: 16),
+
+              // ── 5. Pomodoro Quick Access ──
+              _buildPomodoroQuickAccess(context, theme),
+              const SizedBox(height: 16),
+
+              // ── 6. Today's Progress ──
+              _buildTodaysProgress(
+                theme,
+                goalProgress: goalProgress,
+                goalPct: goalPct,
+                todayCommits: todayCommits,
+                lcToday: lcToday,
+              ),
+              const SizedBox(height: 16),
+
+              // ── 7. 7-Day Activity Chart ──
+              _buildWeeklyActivityChart(
+                theme,
+                weeklyCommits: weeklyCommits,
+                weeklyProgress: weeklyProgress,
+              ),
+              const SizedBox(height: 24),
+
+              // ── 8. Activity Feed ──
+              _buildActivityFeed(theme, activityFeed: activityFeed),
+            ].animate(interval: 50.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1)),
           ),
         ),
       ],
     );
   }
+
+  // Header removed, incorporated into SliverAppBar
 
   // ── 2. Daily Briefing Banner ──
   Widget _buildDailyBriefing(
@@ -830,52 +860,56 @@ class DashboardScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        ...items.map((item) {
-          final type = item.type;
-          final message = item.message;
-          final time = item.time;
+        ListView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: items.length,
+          itemBuilder: (context, index) {
+            final item = items[index];
+            final type = item.type;
+            final message = item.message;
+            final time = item.time;
 
-          return Container(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            decoration: BoxDecoration(
-              border: Border(
-                bottom: BorderSide(
-                  color: theme.borderSubtle,
-                  width: 1,
+            return Container(
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              decoration: BoxDecoration(
+                border: Border(
+                  bottom: BorderSide(
+                    color: theme.borderSubtle,
+                    width: 1,
+                  ),
                 ),
               ),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  iconForType(type),
-                  size: 16,
-                  color: colorForType(type),
-                ),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    message,
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: theme.textTertiary,
-                      overflow: TextOverflow.ellipsis,
+              child: Row(
+                children: [
+                  Icon(
+                    iconForType(type),
+                    size: 16,
+                    color: colorForType(type),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      message,
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: theme.textTertiary,
+                      ),
                     ),
-                    maxLines: 1,
                   ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  time,
-                  style: TextStyle(
-                    fontSize: 10,
-                    color: theme.textGhost,
+                  const SizedBox(width: 10),
+                  Text(
+                    time,
+                    style: TextStyle(
+                      fontSize: 10,
+                      color: theme.textGhost,
+                    ),
                   ),
-                ),
-              ],
-            ),
-          );
-        }),
+                ],
+              ),
+            );
+          },
+        ),
       ],
     );
   }

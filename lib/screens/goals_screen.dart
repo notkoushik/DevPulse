@@ -1,8 +1,11 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
+import '../data/data_provider.dart';
 import '../data/models.dart';
-import '../data/mock_data.dart' as data;
 import '../widgets/glass_card.dart';
 import '../widgets/progress_ring.dart';
 import '../widgets/pomodoro_timer.dart';
@@ -35,43 +38,24 @@ class GoalsScreen extends StatefulWidget {
 }
 
 class _GoalsScreenState extends State<GoalsScreen> {
-  late List<Goal> _goals;
   String _newTitle = '';
   String _newCategory = 'learning';
-
-  @override
-  void initState() {
-    super.initState();
-    _goals = List<Goal>.from(data.goals);
-  }
 
   // ---------- helpers ----------
 
   void _toggleGoal(String id) {
-    setState(() {
-      final goal = _goals.firstWhere((g) => g.id == id);
-      goal.completed = !goal.completed;
-    });
+    context.read<DataProvider>().toggleGoal(id);
   }
 
   void _deleteGoal(String id) {
-    setState(() {
-      _goals.removeWhere((g) => g.id == id);
-    });
+    context.read<DataProvider>().deleteGoal(id);
   }
 
   void _addGoal({String? title, String? category}) {
     final goalTitle = title ?? _newTitle;
     final goalCategory = category ?? _newCategory;
     if (goalTitle.trim().isEmpty) return;
-    setState(() {
-      _goals.add(Goal(
-        id: DateTime.now().millisecondsSinceEpoch.toString(),
-        title: goalTitle.trim(),
-        completed: false,
-        category: goalCategory,
-      ));
-    });
+    context.read<DataProvider>().addGoal(goalTitle.trim(), goalCategory);
   }
 
   void _showAddGoalSheet() {
@@ -271,63 +255,35 @@ class _GoalsScreenState extends State<GoalsScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.of(context);
-    final done = _goals.where((g) => g.completed).length;
-    final total = _goals.length;
+    final provider = context.watch<DataProvider>();
+
+    if (provider.isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (provider.errorMessage != null) {
+      return Center(
+        child: Text(
+          'Error loading data: ${provider.errorMessage}',
+          style: TextStyle(color: theme.textSecondary),
+        ),
+      );
+    }
+
+    final goals = provider.goals;
+    final done = goals.where((g) => g.completed).length;
+    final total = goals.length;
     final pct = total > 0 ? ((done / total) * 100).round() : 0;
 
-    return SingleChildScrollView(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(theme),
-          const SizedBox(height: 24),
-          _buildProgressCard(theme, done, total, pct),
-          const SizedBox(height: 12),
-          _buildCategoryStreaks(theme),
-          const SizedBox(height: 12),
-          _buildWeekChart(theme),
-          const SizedBox(height: 12),
-          _buildQuickAddTemplates(theme),
-          const SizedBox(height: 20),
-          _buildGoalsList(theme),
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
-  // =====================================================================
-  //  1. Header
-  // =====================================================================
-
-  Widget _buildHeader(DevPulseTheme theme) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'DAILY TRACKER',
-              style: TextStyle(
-                fontSize: 11,
-                letterSpacing: 1.2,
-                color: theme.textMuted,
-              ),
-            ),
-            Text(
-              'Goals',
-              style: GoogleFonts.instrumentSerif(
-                fontSize: 28,
-                fontStyle: FontStyle.italic,
-                color: theme.text,
-              ),
-            ),
-          ],
-        ),
-        Row(
-          children: [
+    return CustomScrollView(
+      physics: const BouncingScrollPhysics(),
+      slivers: [
+        SliverAppBar(
+          expandedHeight: 120.0,
+          pinned: true,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          actions: [
             GestureDetector(
               onTap: () => PomodoroTimer.show(context),
               child: Container(
@@ -361,11 +317,58 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 ),
               ),
             ),
+            const SizedBox(width: 20),
           ],
+          flexibleSpace: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+              child: FlexibleSpaceBar(
+                titlePadding: const EdgeInsets.only(left: 20, bottom: 16),
+                title: Text(
+                  'Goals',
+                  style: GoogleFonts.instrumentSerif(
+                    fontSize: 28,
+                    fontStyle: FontStyle.italic,
+                    color: theme.text,
+                  ),
+                ),
+                background: Padding(
+                  padding: const EdgeInsets.only(left: 20, top: 40),
+                  child: Text(
+                    'DAILY TRACKER',
+                    style: TextStyle(
+                      fontSize: 11,
+                      letterSpacing: 1.2,
+                      color: theme.textMuted,
+                    ),
+                  ).animate().fadeIn(duration: 500.ms).slideX(begin: -0.2),
+                ),
+              ),
+            ),
+          ),
+        ),
+        SliverPadding(
+          padding: const EdgeInsets.only(left: 20, right: 20, bottom: 32),
+          sliver: SliverList(
+            delegate: SliverChildListDelegate([
+              const SizedBox(height: 16),
+              _buildProgressCard(theme, done, total, pct),
+              const SizedBox(height: 12),
+              _buildCategoryStreaks(theme, provider),
+              const SizedBox(height: 12),
+              _buildWeekChart(theme, provider),
+              const SizedBox(height: 12),
+              _buildQuickAddTemplates(theme, provider),
+              const SizedBox(height: 20),
+              _buildGoalsList(theme, goals),
+            ].animate(interval: 50.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1)),
+          ),
         ),
       ],
     );
   }
+
+  // Header removed, incorporated into SliverAppBar
 
   // =====================================================================
   //  2. Progress Card
@@ -449,14 +452,16 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   // =====================================================================
   //  3. Category Streaks
-  // =====================================================================
+  // =====================================================================  // ---------- 2. Category Streaks ----------
 
-  Widget _buildCategoryStreaks(DevPulseTheme theme) {
+  Widget _buildCategoryStreaks(DevPulseTheme theme, DataProvider provider) {
+    final streaks = provider.categoryStreaks;
+
     return Row(
       children: _categoryConfig.entries.map((entry) {
         final key = entry.key;
         final info = entry.value;
-        final streak = data.categoryStreaks[key];
+        final streak = streaks[key];
         final current = streak?.current ?? 0;
         final best = streak?.best ?? 0;
 
@@ -507,10 +512,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
 
   // =====================================================================
   //  4. This Week Chart
-  // =====================================================================
+  // =====================================================================  // ---------- 3. This Week Chart ----------
 
-  Widget _buildWeekChart(DevPulseTheme theme) {
-    final stats = data.weeklyGoalStats;
+  Widget _buildWeekChart(DevPulseTheme theme, DataProvider provider) {
+    final stats = provider.weeklyGoalStats;
+    if (stats.isEmpty) return const SizedBox();
     final todayIndex = DateTime.now().weekday - 1;
 
     return GlassCard(
@@ -583,7 +589,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   //  5. Quick Add Templates
   // =====================================================================
 
-  Widget _buildQuickAddTemplates(DevPulseTheme theme) {
+  Widget _buildQuickAddTemplates(DevPulseTheme theme, DataProvider provider) {
     return GlassCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -611,7 +617,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
           Wrap(
             spacing: 8,
             runSpacing: 8,
-            children: data.goalTemplates.map((template) {
+            children: provider.goalTemplates.map((template) {
               return GestureDetector(
                 onTap: () => _addGoal(
                   title: template.title,
@@ -644,7 +650,7 @@ class _GoalsScreenState extends State<GoalsScreen> {
   //  6. Goals List
   // =====================================================================
 
-  Widget _buildGoalsList(DevPulseTheme theme) {
+  Widget _buildGoalsList(DevPulseTheme theme, List<Goal> goals) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -669,11 +675,11 @@ class _GoalsScreenState extends State<GoalsScreen> {
           ],
         ),
         const SizedBox(height: 12),
-        if (_goals.isEmpty)
+        if (goals.isEmpty)
           _buildEmptyState(theme)
         else
           Column(
-            children: _goals.map((goal) {
+            children: goals.map((goal) {
               final catInfo = _categoryConfig[goal.category];
               final catColor = catInfo?.color ?? DevPulseColors.info;
               final catLabel = catInfo?.label ?? goal.category;
