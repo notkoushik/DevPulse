@@ -5,6 +5,7 @@ abstract class DataRepository {
   Future<UserData> getUserData();
   Future<GitHubStats> getGitHubStats();
   Future<LeetCodeStats> getLeetCodeStats();
+  Future<WakaTimeStats> getWakaTimeStats();
   Future<List<Goal>> getGoals();
   Future<WeeklyReport> getWeeklyReport();
   Future<List<WeeklyGoalStat>> getWeeklyGoalStats();
@@ -42,9 +43,24 @@ class MockDataRepository implements DataRepository {
   }
 
   @override
+  Future<WakaTimeStats> getWakaTimeStats() async {
+    await _delay();
+    return const WakaTimeStats(
+      todayText: '4 hrs 32 mins',
+      todaySeconds: 16320,
+      weekText: '28 hrs 15 mins',
+      weekSeconds: 101700,
+      dailyAverage: '4 hrs 2 mins',
+      languages: [],
+      editors: [],
+      projects: [],
+      dailyCoding: [],
+    );
+  }
+
+  @override
   Future<List<Goal>> getGoals() async {
     await _delay();
-    // Return a copy so we can mutate it safely
     return List<Goal>.from(mock.goals);
   }
 

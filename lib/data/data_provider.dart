@@ -16,6 +16,7 @@ class DataProvider extends ChangeNotifier {
   UserData? userData;
   GitHubStats? githubStats;
   LeetCodeStats? leetcodeStats;
+  WakaTimeStats? wakaTimeStats;
   List<Goal> goals = [];
   WeeklyReport? weeklyReport;
   List<WeeklyGoalStat> weeklyGoalStats = [];
@@ -35,6 +36,7 @@ class DataProvider extends ChangeNotifier {
         repository.getUserData(),
         repository.getGitHubStats(),
         repository.getLeetCodeStats(),
+        repository.getWakaTimeStats(),
         repository.getGoals(),
         repository.getWeeklyReport(),
         repository.getWeeklyGoalStats(),
@@ -47,13 +49,14 @@ class DataProvider extends ChangeNotifier {
       userData = results[0] as UserData;
       githubStats = results[1] as GitHubStats;
       leetcodeStats = results[2] as LeetCodeStats;
-      goals = results[3] as List<Goal>;
-      weeklyReport = results[4] as WeeklyReport;
-      weeklyGoalStats = results[5] as List<WeeklyGoalStat>;
-      goalTemplates = results[6] as List<GoalTemplate>;
-      categoryStreaks = results[7] as Map<String, CategoryStreak>;
-      badges = results[8] as List<AppBadge>;
-      activityFeed = results[9] as List<ActivityItem>;
+      wakaTimeStats = results[3] as WakaTimeStats;
+      goals = results[4] as List<Goal>;
+      weeklyReport = results[5] as WeeklyReport;
+      weeklyGoalStats = results[6] as List<WeeklyGoalStat>;
+      goalTemplates = results[7] as List<GoalTemplate>;
+      categoryStreaks = results[8] as Map<String, CategoryStreak>;
+      badges = results[9] as List<AppBadge>;
+      activityFeed = results[10] as List<ActivityItem>;
 
     } catch (e) {
       errorMessage = e.toString();
@@ -80,7 +83,7 @@ class DataProvider extends ChangeNotifier {
       completed: false,
       category: category,
     );
-    goals.insert(0, newGoal); // Add to top usually makes sense
+    goals.insert(0, newGoal);
     notifyListeners();
   }
 

@@ -7,6 +7,7 @@ import '../data/data_provider.dart';
 import 'dashboard_screen.dart';
 import 'github_screen.dart';
 import 'leetcode_screen.dart';
+import 'wakatime_screen.dart';
 import 'goals_screen.dart';
 import 'profile_screen.dart';
 
@@ -37,6 +38,7 @@ class _MainScreenState extends State<MainScreen> {
     DashboardScreen(),
     GitHubScreen(),
     LeetCodeScreen(),
+    WakaTimeScreen(),
     GoalsScreen(),
     ProfileScreen(),
   ];
@@ -55,9 +57,11 @@ class _MainScreenState extends State<MainScreen> {
         final solved = provider.leetcodeStats?.weeklyProgress.last.solved ?? 0;
         auraColor = solved > 0 ? DevPulseColors.warning : DevPulseColors.primary;
       } else if (_currentIndex == 3) {
-        auraColor = DevPulseColors.danger;
+        auraColor = DevPulseColors.info; // WakaTime
       } else if (_currentIndex == 4) {
-        auraColor = DevPulseColors.info;
+        auraColor = DevPulseColors.danger; // Goals
+      } else if (_currentIndex == 5) {
+        auraColor = DevPulseColors.info; // Profile
       }
     }
 
@@ -127,7 +131,8 @@ class _NavItem {
 const _navItems = [
   _NavItem(icon: Icons.dashboard_rounded, label: 'Home'),
   _NavItem(icon: Icons.code_rounded, label: 'GitHub'),
-  _NavItem(icon: Icons.terminal_rounded, label: 'LeetCode'),
+  _NavItem(icon: Icons.terminal_rounded, label: 'LC'),
+  _NavItem(icon: Icons.timer_rounded, label: 'Waka'),
   _NavItem(icon: Icons.flag_rounded, label: 'Goals'),
   _NavItem(icon: Icons.person_rounded, label: 'Profile'),
 ];

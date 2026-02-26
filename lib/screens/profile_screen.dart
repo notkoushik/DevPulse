@@ -6,6 +6,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_provider.dart';
 import '../data/data_provider.dart';
+import '../data/api_repository.dart';
 import '../widgets/glass_card.dart';
 
 void _showWeeklyReport(BuildContext context, dynamic report) {
@@ -1014,6 +1015,12 @@ class ProfileScreen extends StatelessWidget {
         label: 'Privacy',
       ),
       _SettingItem(
+        icon: Icons.dns_outlined,
+        iconColor: DevPulseColors.warning,
+        label: 'Server IP',
+        isServerIP: true,
+      ),
+      _SettingItem(
         icon: Icons.help_outline,
         iconColor: theme.textMuted,
         label: 'Help',
@@ -1038,6 +1045,8 @@ class ProfileScreen extends StatelessWidget {
             onTap: () {
               if (item.isThemeToggle) {
                 themeProvider.toggleTheme();
+              } else if (item.isServerIP) {
+                _showServerIPDialog(context, theme);
               }
             },
             child: Container(
@@ -1108,6 +1117,135 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+
+  void _showServerIPDialog(BuildContext context, dynamic theme) {
+    final provider = context.read<DataProvider>();
+    final repo = provider.repository;
+    String currentUrl = '';
+    if (repo is ApiDataRepository) {
+      currentUrl = repo.baseUrl;
+    }
+    final controller = TextEditingController(text: currentUrl);
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: theme.card,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Server Configuration',
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: theme.text,
+            ),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Enter the backend API base URL:',
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  color: theme.textSecondary,
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: controller,
+                style: GoogleFonts.jetBrainsMono(
+                  fontSize: 13,
+                  color: theme.text,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'http://192.168.1.35:3001/api',
+                  hintStyle: TextStyle(color: theme.textDim, fontSize: 12),
+                  filled: true,
+                  fillColor: theme.fill2,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(10),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 10),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 6,
+                runSpacing: 6,
+                children: [
+                  _quickIPChip(ctx, controller, theme, 'Emulator',
+                      'http://10.0.2.2:3001/api'),
+                  _quickIPChip(ctx, controller, theme, 'Localhost',
+                      'http://localhost:3001/api'),
+                  _quickIPChip(ctx, controller, theme, 'Wi-Fi',
+                      'http://192.168.1.35:3001/api'),
+                ],
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.inter(
+                    fontSize: 13, color: theme.textMuted),
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                final newUrl = controller.text.trim();
+                if (newUrl.isNotEmpty && repo is ApiDataRepository) {
+                  repo.baseUrl = newUrl;
+                  provider.loadAllData();
+                }
+                Navigator.pop(ctx);
+              },
+              child: Text(
+                'Save & Reload',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: DevPulseColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _quickIPChip(BuildContext context, TextEditingController controller,
+      dynamic theme, String label, String url) {
+    return GestureDetector(
+      onTap: () => controller.text = url,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: DevPulseColors.primary.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: DevPulseColors.primary.withOpacity(0.2),
+          ),
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 10,
+            color: DevPulseColors.primary,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class _SettingItem {
@@ -1117,6 +1255,7 @@ class _SettingItem {
   final String? value;
   final bool isThemeToggle;
   final bool isSignOut;
+  final bool isServerIP;
 
   _SettingItem({
     required this.icon,
@@ -1125,5 +1264,6 @@ class _SettingItem {
     this.value,
     this.isThemeToggle = false,
     this.isSignOut = false,
+    this.isServerIP = false,
   });
 }

@@ -1,0 +1,30 @@
+{
+    "name": "devpulse-backend",
+    "version": "1.0.0",
+    "description": "DevPulse Backend API — GitHub, LeetCode, WakaTime aggregator",
+    "main": "dist/index.js",
+    "scripts": {
+        "dev": "ts-node src/index.ts",
+        "build": "tsc",
+        "start": "node dist/index.js"
+    },
+    "dependencies": {
+        "@supabase/supabase-js": "^2.97.0",
+        "@types/jsonwebtoken": "^9.0.10",
+        "@types/passport": "^1.0.17",
+        "axios": "^1.7.0",
+        "cors": "^2.8.5",
+        "dotenv": "^16.4.0",
+        "express": "^4.21.0",
+        "jsonwebtoken": "^9.0.3",
+        "passport": "^0.7.0",
+        "passport-jwt": "^4.0.1"
+    },
+    "devDependencies": {
+        "@types/cors": "^2.8.17",
+        "@types/express": "^5.0.0",
+        "@types/node": "^22.0.0",
+        "ts-node": "^10.9.2",
+        "typescript": "^5.7.0"
+    }
+}
