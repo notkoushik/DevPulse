@@ -9,6 +9,7 @@ import '../data/data_provider.dart';
 import '../data/models.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/progress_ring.dart';
+import '../widgets/ai_insight_card.dart';
 
 const _difficultyColors = {
   'Easy': Color(0xFF34D1A0),
@@ -28,10 +29,10 @@ class LeetCodeScreen extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (provider.errorMessage != null) {
+    if (provider.leetcodeStats == null) {
       return Center(
         child: Text(
-          'Error loading data: ${provider.errorMessage}',
+          'Error loading LeetCode data: ${provider.errorMessage ?? "Unknown"}',
           style: TextStyle(color: theme.textSecondary),
         ),
       );
@@ -84,7 +85,7 @@ class LeetCodeScreen extends StatelessWidget {
               const SizedBox(height: 16),
 
           // ── Total Solved Card ──
-          _buildTotalSolvedCard(theme, totalProgress),
+          _buildTotalSolvedCard(theme, stats, totalProgress),
           const SizedBox(height: 12),
 
           // ── Difficulty Breakdown ──
@@ -92,8 +93,12 @@ class LeetCodeScreen extends StatelessWidget {
           const SizedBox(height: 16),
 
           // ── Metrics Row ──
-          _buildMetricsRow(theme),
+          _buildMetricsRow(theme, stats),
           const SizedBox(height: 20),
+
+          // ── AI Insights ──
+          const AiInsightSection(screenContext: 'leetcode'),
+          const SizedBox(height: 16),
 
           // ── Weekly Progress Chart ──
           _buildWeeklyProgressChart(theme, stats),
@@ -108,7 +113,7 @@ class LeetCodeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildTotalSolvedCard(DevPulseTheme theme, int totalProgress) {
+  Widget _buildTotalSolvedCard(DevPulseTheme theme, LeetCodeStats stats, int totalProgress) {
     return GlassCard(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -133,14 +138,14 @@ class LeetCodeScreen extends StatelessWidget {
                   textBaseline: TextBaseline.alphabetic,
                   children: [
                     Text(
-                      '342',
+                      '${stats.totalSolved}',
                       style: GoogleFonts.jetBrainsMono(
                         fontSize: 42,
                         color: theme.text,
                       ),
                     ),
                     Text(
-                      ' / 3250',
+                      ' / ${stats.totalQuestions}',
                       style: TextStyle(
                         fontSize: 13,
                         color: theme.textDim,
@@ -158,7 +163,7 @@ class LeetCodeScreen extends StatelessWidget {
                     ),
                     const SizedBox(width: 4),
                     Text(
-                      '#48,523',
+                      '#${stats.ranking}',
                       style: TextStyle(
                         fontSize: 11,
                         color: theme.textMuted,
@@ -191,9 +196,9 @@ class LeetCodeScreen extends StatelessWidget {
   Widget _buildDifficultyBreakdown(
       DevPulseTheme theme, LeetCodeStats stats) {
     final difficulties = [
-      {'label': 'Easy', 'solved': 187, 'total': 830},
-      {'label': 'Medium', 'solved': 128, 'total': 1725},
-      {'label': 'Hard', 'solved': 27, 'total': 695},
+      {'label': 'Easy', 'solved': stats.easy.solved, 'total': stats.easy.total},
+      {'label': 'Medium', 'solved': stats.medium.solved, 'total': stats.medium.total},
+      {'label': 'Hard', 'solved': stats.hard.solved, 'total': stats.hard.total},
     ];
 
     return Row(
@@ -287,7 +292,7 @@ class LeetCodeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildMetricsRow(DevPulseTheme theme) {
+  Widget _buildMetricsRow(DevPulseTheme theme, LeetCodeStats stats) {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 4),
       child: Row(
@@ -302,7 +307,7 @@ class LeetCodeScreen extends StatelessWidget {
                 TextSpan(
                   children: [
                     TextSpan(
-                      text: '67.8%',
+                      text: '${stats.acceptanceRate}%',
                       style: TextStyle(
                         fontSize: 11,
                         color: theme.textTertiary,
@@ -329,7 +334,7 @@ class LeetCodeScreen extends StatelessWidget {
                 TextSpan(
                   children: [
                     TextSpan(
-                      text: '1687',
+                      text: '${stats.contestRating}',
                       style: TextStyle(
                         fontSize: 11,
                         color: theme.textTertiary,
@@ -352,7 +357,7 @@ class LeetCodeScreen extends StatelessWidget {
             TextSpan(
               children: [
                 TextSpan(
-                  text: '12',
+                  text: '${stats.badges}',
                   style: TextStyle(
                     fontSize: 11,
                     color: theme.textTertiary,

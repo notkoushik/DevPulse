@@ -9,6 +9,7 @@ import '../data/models.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/progress_ring.dart';
 import '../widgets/pomodoro_timer.dart';
+import '../widgets/ai_insight_card.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -30,10 +31,10 @@ class DashboardScreen extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (provider.errorMessage != null) {
+    if (provider.userData == null) {
       return Center(
         child: Text(
-          'Error loading data: ${provider.errorMessage}',
+          'Error loading data: ${provider.errorMessage ?? "Unknown"}',
           style: TextStyle(color: theme.textSecondary),
         ),
       );
@@ -118,6 +119,10 @@ class DashboardScreen extends StatelessWidget {
                 lcYesterday: lcYesterday,
                 streak: streak,
               ),
+              const SizedBox(height: 16),
+
+              // ── AI Insights ──
+              const AiInsightSection(screenContext: 'dashboard'),
               const SizedBox(height: 16),
 
               // ── 3. Streak Card ──

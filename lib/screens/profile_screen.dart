@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../theme/app_theme.dart';
 import '../theme/theme_provider.dart';
 import '../data/data_provider.dart';
@@ -296,10 +298,10 @@ class ProfileScreen extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (provider.errorMessage != null) {
+    if (provider.userData == null) {
       return Center(
         child: Text(
-          'Error loading data: ${provider.errorMessage}',
+          'Error loading profile: ${provider.errorMessage ?? "Unknown"}',
           style: TextStyle(color: theme.textSecondary),
         ),
       );
@@ -456,6 +458,8 @@ class ProfileScreen extends StatelessWidget {
   // ── 2. Stats Grid ──
   Widget _buildStatsGrid(
       BuildContext context, dynamic theme, dynamic user, dynamic lcStats) {
+    final provider = context.read<DataProvider>();
+    final completedGoals = provider.goals.where((g) => g.completed).length;
     return Row(
       children: [
         Expanded(
@@ -463,7 +467,7 @@ class ProfileScreen extends StatelessWidget {
             theme,
             Icons.local_fire_department,
             DevPulseColors.danger,
-            '47',
+            '${user.streak}',
             'STREAK',
           ),
         ),
@@ -473,7 +477,7 @@ class ProfileScreen extends StatelessWidget {
             theme,
             Icons.commit,
             DevPulseColors.primary,
-            '1,284',
+            '${user.totalCommits}',
             'COMMITS',
           ),
         ),
@@ -483,7 +487,7 @@ class ProfileScreen extends StatelessWidget {
             theme,
             Icons.code,
             DevPulseColors.warning,
-            '342',
+            '${lcStats.totalSolved}',
             'SOLVED',
           ),
         ),
@@ -493,7 +497,7 @@ class ProfileScreen extends StatelessWidget {
             theme,
             Icons.track_changes,
             DevPulseColors.success,
-            '12',
+            '$completedGoals',
             'GOALS',
           ),
         ),
@@ -712,14 +716,30 @@ class ProfileScreen extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            'CONNECTED',
-            style: GoogleFonts.inter(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: theme.textDim,
-              letterSpacing: 1.0,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'CONNECTED',
+                style: GoogleFonts.inter(
+                  fontSize: 10,
+                  fontWeight: FontWeight.w600,
+                  color: theme.textDim,
+                  letterSpacing: 1.0,
+                ),
+              ),
+              GestureDetector(
+                onTap: () => _showEditAccountsDialog(context, theme),
+                child: Text(
+                  'Edit',
+                  style: GoogleFonts.inter(
+                    fontSize: 11,
+                    color: DevPulseColors.primary,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ],
           ),
           const SizedBox(height: 16),
 
@@ -738,15 +758,129 @@ class ProfileScreen extends StatelessWidget {
             margin: const EdgeInsets.symmetric(vertical: 12),
           ),
 
-          // LeetCode
+          // LeetCode — show 'Not set' if username is same as GitHub (likely not configured)
           _connectedAccountRow(
             theme,
             Icons.code,
             DevPulseColors.warning,
             'LeetCode',
-            '@${user.username}',
+            'Tap Edit to configure',
           ),
         ],
+      ),
+    );
+  }
+
+  void _showEditAccountsDialog(BuildContext context, dynamic theme) {
+    final provider = context.read<DataProvider>();
+    final githubCtrl = TextEditingController(text: provider.userData?.username ?? '');
+    final leetcodeCtrl = TextEditingController();
+    final wakatimeCtrl = TextEditingController();
+
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return AlertDialog(
+          backgroundColor: theme.card,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          title: Text(
+            'Edit Connected Accounts',
+            style: GoogleFonts.inter(
+              fontSize: 16,
+              fontWeight: FontWeight.w600,
+              color: theme.text,
+            ),
+          ),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _accountField(theme, 'GitHub Username', githubCtrl, 'e.g. octocat'),
+                const SizedBox(height: 12),
+                _accountField(theme, 'LeetCode Username', leetcodeCtrl, 'e.g. leetcoder'),
+                const SizedBox(height: 12),
+                _accountField(theme, 'WakaTime API Key', wakatimeCtrl, 'waka_xxxx-xxxx'),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text(
+                'Cancel',
+                style: GoogleFonts.inter(fontSize: 13, color: theme.textMuted),
+              ),
+            ),
+            TextButton(
+              onPressed: () async {
+                final userId = Supabase.instance.client.auth.currentUser?.id;
+                if (userId == null) return;
+
+                final updates = <String, dynamic>{
+                  'id': userId,
+                  'updated_at': DateTime.now().toIso8601String(),
+                };
+                if (githubCtrl.text.trim().isNotEmpty) {
+                  updates['github_username'] = githubCtrl.text.trim();
+                }
+                if (leetcodeCtrl.text.trim().isNotEmpty) {
+                  updates['leetcode_username'] = leetcodeCtrl.text.trim();
+                }
+                if (wakatimeCtrl.text.trim().isNotEmpty) {
+                  updates['wakatime_api_key'] = wakatimeCtrl.text.trim();
+                }
+
+                try {
+                  await Supabase.instance.client
+                      .from('profiles')
+                      .upsert(updates);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  provider.loadAllData();
+                } catch (e) {
+                  if (ctx.mounted) {
+                    ScaffoldMessenger.of(ctx).showSnackBar(
+                      SnackBar(
+                        content: Text('Failed to save: $e'),
+                        backgroundColor: Colors.red,
+                      ),
+                    );
+                  }
+                }
+              },
+              child: Text(
+                'Save & Reload',
+                style: GoogleFonts.inter(
+                  fontSize: 13,
+                  color: DevPulseColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _accountField(
+      dynamic theme, String label, TextEditingController controller, String hint) {
+    return TextField(
+      controller: controller,
+      style: GoogleFonts.jetBrainsMono(fontSize: 13, color: theme.text),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.inter(fontSize: 12, color: theme.textMuted),
+        hintText: hint,
+        hintStyle: TextStyle(color: theme.textDim, fontSize: 12),
+        filled: true,
+        fillColor: theme.fill2,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(10),
+          borderSide: BorderSide.none,
+        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       ),
     );
   }
@@ -1042,11 +1176,13 @@ class ProfileScreen extends StatelessWidget {
 
           return GestureDetector(
             behavior: HitTestBehavior.opaque,
-            onTap: () {
+            onTap: () async {
               if (item.isThemeToggle) {
                 themeProvider.toggleTheme();
               } else if (item.isServerIP) {
                 _showServerIPDialog(context, theme);
+              } else if (item.isSignOut) {
+                await Supabase.instance.client.auth.signOut();
               }
             },
             child: Container(
@@ -1127,96 +1263,267 @@ class ProfileScreen extends StatelessWidget {
     }
     final controller = TextEditingController(text: currentUrl);
 
+    // Mutable state for the dialog
+    bool isTesting = false;
+    bool? testPassed;
+    String testMessage = '';
+
     showDialog(
       context: context,
       builder: (ctx) {
-        return AlertDialog(
-          backgroundColor: theme.card,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          title: Text(
-            'Server Configuration',
-            style: GoogleFonts.inter(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: theme.text,
-            ),
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Enter the backend API base URL:',
-                style: GoogleFonts.inter(
-                  fontSize: 12,
-                  color: theme.textSecondary,
-                ),
+        return StatefulBuilder(
+          builder: (dialogContext, setDialogState) {
+            return AlertDialog(
+              backgroundColor: theme.card,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: controller,
-                style: GoogleFonts.jetBrainsMono(
-                  fontSize: 13,
+              title: Text(
+                'Server Configuration',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
                   color: theme.text,
                 ),
-                decoration: InputDecoration(
-                  hintText: 'http://192.168.1.35:3001/api',
-                  hintStyle: TextStyle(color: theme.textDim, fontSize: 12),
-                  filled: true,
-                  fillColor: theme.fill2,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(10),
-                    borderSide: BorderSide.none,
+              ),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Enter the backend API base URL:',
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: theme.textSecondary,
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: controller,
+                      style: GoogleFonts.jetBrainsMono(
+                        fontSize: 13,
+                        color: theme.text,
+                      ),
+                      onChanged: (_) {
+                        if (testPassed != null) {
+                          setDialogState(() {
+                            testPassed = null;
+                            testMessage = '';
+                          });
+                        }
+                      },
+                      decoration: InputDecoration(
+                        hintText: 'http://192.168.1.35:3001/api',
+                        hintStyle:
+                            TextStyle(color: theme.textDim, fontSize: 12),
+                        filled: true,
+                        fillColor: theme.fill2,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 10),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        _quickIPChip(ctx, controller, theme, 'Emulator',
+                            'http://10.0.2.2:3001/api'),
+                        _quickIPChip(ctx, controller, theme, 'Localhost',
+                            'http://localhost:3001/api'),
+                        _quickIPChip(ctx, controller, theme, 'Wi-Fi',
+                            'http://192.168.1.35:3001/api'),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+
+                    // Test Connection Button
+                    SizedBox(
+                      width: double.infinity,
+                      child: OutlinedButton.icon(
+                        icon: isTesting
+                            ? const SizedBox(
+                                width: 14,
+                                height: 14,
+                                child: CircularProgressIndicator(
+                                    strokeWidth: 2),
+                              )
+                            : Icon(
+                                Icons.wifi_tethering,
+                                size: 16,
+                                color: theme.textSecondary,
+                              ),
+                        label: Text(
+                          isTesting ? 'Testing...' : 'Test Connection',
+                          style: GoogleFonts.inter(
+                            fontSize: 12,
+                            color: theme.textSecondary,
+                          ),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          side: BorderSide(color: theme.border),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        onPressed: isTesting
+                            ? null
+                            : () async {
+                                setDialogState(() {
+                                  isTesting = true;
+                                  testPassed = null;
+                                  testMessage = '';
+                                });
+                                final result = await provider
+                                    .testConnection(controller.text.trim());
+                                setDialogState(() {
+                                  isTesting = false;
+                                  if (result == null) {
+                                    testPassed = false;
+                                    testMessage = 'Not using API repository';
+                                  } else {
+                                    testPassed = result.ok;
+                                    testMessage = result.ok
+                                        ? 'Connected (${result.latencyMs}ms)'
+                                        : result.error ?? 'Connection failed';
+                                  }
+                                });
+                              },
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+
+                    // Connection Status Indicator
+                    if (testPassed != null)
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: (testPassed!
+                                  ? DevPulseColors.success
+                                  : DevPulseColors.danger)
+                              .withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: (testPassed!
+                                    ? DevPulseColors.success
+                                    : DevPulseColors.danger)
+                                .withValues(alpha: 0.3),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              testPassed!
+                                  ? Icons.check_circle
+                                  : Icons.error_outline,
+                              size: 16,
+                              color: testPassed!
+                                  ? DevPulseColors.success
+                                  : DevPulseColors.danger,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                testMessage,
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: theme.textSecondary,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  child: Text(
+                    'Cancel',
+                    style: GoogleFonts.inter(
+                        fontSize: 13, color: theme.textMuted),
                   ),
-                  contentPadding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 10),
                 ),
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 6,
-                runSpacing: 6,
-                children: [
-                  _quickIPChip(ctx, controller, theme, 'Emulator',
-                      'http://10.0.2.2:3001/api'),
-                  _quickIPChip(ctx, controller, theme, 'Localhost',
-                      'http://localhost:3001/api'),
-                  _quickIPChip(ctx, controller, theme, 'Wi-Fi',
-                      'http://192.168.1.35:3001/api'),
-                ],
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: Text(
-                'Cancel',
-                style: GoogleFonts.inter(
-                    fontSize: 13, color: theme.textMuted),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                final newUrl = controller.text.trim();
-                if (newUrl.isNotEmpty && repo is ApiDataRepository) {
-                  repo.baseUrl = newUrl;
-                  provider.loadAllData();
-                }
-                Navigator.pop(ctx);
-              },
-              child: Text(
-                'Save & Reload',
-                style: GoogleFonts.inter(
-                  fontSize: 13,
-                  color: DevPulseColors.primary,
-                  fontWeight: FontWeight.w600,
+                TextButton(
+                  onPressed: () async {
+                    final newUrl = controller.text.trim();
+                    if (newUrl.isEmpty) return;
+
+                    // Warn if test hasn't passed
+                    if (testPassed != true) {
+                      final proceed = await showDialog<bool>(
+                        context: dialogContext,
+                        builder: (c) => AlertDialog(
+                          backgroundColor: theme.card,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          title: Text(
+                            'Connection Not Verified',
+                            style: GoogleFonts.inter(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: theme.text,
+                            ),
+                          ),
+                          content: Text(
+                            'The connection test has not passed. Save anyway?',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              color: theme.textSecondary,
+                            ),
+                          ),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(c, false),
+                              child: Text('Cancel',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: theme.textMuted)),
+                            ),
+                            TextButton(
+                              onPressed: () => Navigator.pop(c, true),
+                              child: Text('Save Anyway',
+                                  style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: DevPulseColors.warning,
+                                      fontWeight: FontWeight.w600)),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (proceed != true) return;
+                    }
+
+                    if (repo is ApiDataRepository) {
+                      repo.baseUrl = newUrl;
+                      // Persist to SharedPreferences
+                      final prefs = await SharedPreferences.getInstance();
+                      await prefs.setString('server_base_url', newUrl);
+                      provider.loadAllData();
+                    }
+                    if (ctx.mounted) Navigator.pop(ctx);
+                  },
+                  child: Text(
+                    'Save & Reload',
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: DevPulseColors.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-          ],
+              ],
+            );
+          },
         );
       },
     );

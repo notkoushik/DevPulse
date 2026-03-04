@@ -588,3 +588,104 @@ class ActivityItem {
         time: json['time'] ?? '',
       );
 }
+
+// ══════════════════════════════════════════════════════════════════
+//  NEWS
+// ══════════════════════════════════════════════════════════════════
+
+class NewsItem {
+  final String id;
+  final String title;
+  final String url;
+  final String source;
+  final String? author;
+  final int points;
+  final int comments;
+  final String timeAgo;
+  final List<String> tags;
+
+  const NewsItem({
+    required this.id,
+    required this.title,
+    required this.url,
+    required this.source,
+    this.author,
+    required this.points,
+    required this.comments,
+    required this.timeAgo,
+    this.tags = const [],
+  });
+
+  factory NewsItem.fromJson(Map<String, dynamic> json) => NewsItem(
+        id: json['id']?.toString() ?? '',
+        title: json['title'] ?? '',
+        url: json['url'] ?? '',
+        source: json['source'] ?? '',
+        author: json['author'],
+        points: json['points'] ?? 0,
+        comments: json['comments'] ?? 0,
+        timeAgo: json['timeAgo'] ?? '',
+        tags: (json['tags'] as List? ?? []).cast<String>(),
+      );
+}
+
+class TrendingRepo {
+  final String name;
+  final String author;
+  final String description;
+  final String language;
+  final String languageColor;
+  final int stars;
+  final int todayStars;
+  final String url;
+
+  const TrendingRepo({
+    required this.name,
+    required this.author,
+    required this.description,
+    required this.language,
+    required this.languageColor,
+    required this.stars,
+    required this.todayStars,
+    required this.url,
+  });
+
+  factory TrendingRepo.fromJson(Map<String, dynamic> json) => TrendingRepo(
+        name: json['name'] ?? '',
+        author: json['author'] ?? '',
+        description: json['description'] ?? '',
+        language: json['language'] ?? 'Unknown',
+        languageColor: json['languageColor'] ?? '#888888',
+        stars: json['stars'] ?? 0,
+        todayStars: json['todayStars'] ?? 0,
+        url: json['url'] ?? '',
+      );
+}
+
+// ══════════════════════════════════════════════════════════════════
+//  AI
+// ══════════════════════════════════════════════════════════════════
+
+class AiInsight {
+  final String text;
+  final String type;
+
+  const AiInsight({required this.text, required this.type});
+
+  factory AiInsight.fromJson(Map<String, dynamic> json) => AiInsight(
+        text: json['text'] ?? '',
+        type: json['type'] ?? 'tip',
+      );
+}
+
+class ChatMessage {
+  final String role;
+  final String content;
+  final DateTime timestamp;
+
+  const ChatMessage({
+    required this.role,
+    required this.content,
+    required this.timestamp,
+  });
+}

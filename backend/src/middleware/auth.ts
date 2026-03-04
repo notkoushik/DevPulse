@@ -31,6 +31,11 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
         const { data: { user }, error } = await supabase.auth.getUser(token);
 
         if (error || !user) {
+            console.warn('Auth token verification failed:', {
+                errorMessage: error?.message,
+                errorStatus: error?.status,
+                hasUser: !!user,
+            });
             res.status(401).json({ error: 'Unauthorized: Invalid token' });
             return;
         }
@@ -52,8 +57,13 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
         req.userProfile = profile || {};
 
         next();
-    } catch (err) {
-        console.error('Auth error:', err);
+    } catch (err: any) {
+        console.error('Auth error:', {
+            message: err?.message,
+            code: err?.code,
+            status: err?.status,
+            stack: err?.stack,
+        });
         res.status(500).json({ error: 'Internal server error during authentication' });
         return;
     }

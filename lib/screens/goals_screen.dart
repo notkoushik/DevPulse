@@ -9,6 +9,7 @@ import '../data/models.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/progress_ring.dart';
 import '../widgets/pomodoro_timer.dart';
+import '../widgets/ai_insight_card.dart';
 
 // ---------- category config ----------
 
@@ -261,14 +262,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (provider.errorMessage != null) {
-      return Center(
-        child: Text(
-          'Error loading data: ${provider.errorMessage}',
-          style: TextStyle(color: theme.textSecondary),
-        ),
-      );
-    }
+
+
 
     final goals = provider.goals;
     final done = goals.where((g) => g.completed).length;
@@ -359,6 +354,10 @@ class _GoalsScreenState extends State<GoalsScreen> {
               _buildWeekChart(theme, provider),
               const SizedBox(height: 12),
               _buildQuickAddTemplates(theme, provider),
+              const SizedBox(height: 16),
+
+              // ── AI Recommendations ──
+              const AiInsightSection(screenContext: 'goals'),
               const SizedBox(height: 20),
               _buildGoalsList(theme, goals),
             ].animate(interval: 50.ms).fadeIn(duration: 400.ms).slideY(begin: 0.1)),

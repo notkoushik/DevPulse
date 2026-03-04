@@ -8,6 +8,7 @@ import '../theme/app_theme.dart';
 import '../data/data_provider.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/contribution_grid.dart';
+import '../widgets/ai_insight_card.dart';
 
 class GitHubScreen extends StatelessWidget {
   const GitHubScreen({super.key});
@@ -21,10 +22,10 @@ class GitHubScreen extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (provider.errorMessage != null) {
+    if (provider.githubStats == null) {
       return Center(
         child: Text(
-          'Error loading data: ${provider.errorMessage}',
+          'Error loading GitHub data: ${provider.errorMessage ?? "Unknown"}',
           style: TextStyle(color: theme.textSecondary),
         ),
       );
@@ -102,7 +103,7 @@ class GitHubScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        '7',
+                        '${stats.todayCommits}',
                         style: GoogleFonts.jetBrainsMono(
                           fontSize: 34,
                           color: theme.text,
@@ -250,6 +251,10 @@ class GitHubScreen extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 20),
+
+          // -- AI Insights --
+          const AiInsightSection(screenContext: 'github'),
+          const SizedBox(height: 16),
 
           // -- Weekly Activity Chart --
           GlassCard(

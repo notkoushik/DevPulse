@@ -13,6 +13,15 @@ abstract class DataRepository {
   Future<Map<String, CategoryStreak>> getCategoryStreaks();
   Future<List<AppBadge>> getBadges();
   Future<List<ActivityItem>> getActivityFeed();
+
+  // News
+  Future<List<NewsItem>> getNewsFeed({String source = 'all'});
+  Future<List<TrendingRepo>> getTrendingRepos();
+
+  // AI
+  Future<List<AiInsight>> getAiInsights(String context, Map<String, dynamic> stats);
+  Future<String> getAiSummary(String context, Map<String, dynamic> stats);
+  Future<String> sendChatMessage(String message, List<ChatMessage> history, Map<String, dynamic> context);
 }
 
 /// A repository that returns the mock data asynchronously to simulate
@@ -98,5 +107,37 @@ class MockDataRepository implements DataRepository {
   Future<List<ActivityItem>> getActivityFeed() async {
     await _delay();
     return mock.activityFeed;
+  }
+
+  // News
+  @override
+  Future<List<NewsItem>> getNewsFeed({String source = 'all'}) async {
+    await _delay();
+    return [];
+  }
+
+  @override
+  Future<List<TrendingRepo>> getTrendingRepos() async {
+    await _delay();
+    return [];
+  }
+
+  // AI
+  @override
+  Future<List<AiInsight>> getAiInsights(String context, Map<String, dynamic> stats) async {
+    await _delay();
+    return [];
+  }
+
+  @override
+  Future<String> getAiSummary(String context, Map<String, dynamic> stats) async {
+    await _delay();
+    return '';
+  }
+
+  @override
+  Future<String> sendChatMessage(String message, List<ChatMessage> history, Map<String, dynamic> context) async {
+    await _delay();
+    return 'Mock AI response';
   }
 }

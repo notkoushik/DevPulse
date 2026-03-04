@@ -63,7 +63,7 @@ class _LoginScreenState extends State<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.of(context);
-    final isDark = theme.isDark;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Scaffold(
       body: Stack(
@@ -105,7 +105,7 @@ class _LoginScreenState extends State<LoginScreen> {
               height: 400,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: DevPulseColors.secondary.withOpacity(0.1),
+                color: DevPulseColors.info.withOpacity(0.1),
               ),
             ),
           ),
@@ -218,7 +218,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       child: Text(
                         _isSignUp
                             ? 'Already have an account? Sign In'
-                            : 'Don\\'t have an account? Sign Up',
+                            : "Don't have an account? Sign Up",
                         style: TextStyle(color: theme.text),
                       ),
                     ).animate().fadeIn(delay: 500.ms),

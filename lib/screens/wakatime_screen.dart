@@ -20,14 +20,8 @@ class WakaTimeScreen extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    if (provider.errorMessage != null) {
-      return Center(
-        child: Text(
-          'Error loading data: ${provider.errorMessage}',
-          style: TextStyle(color: theme.textSecondary),
-        ),
-      );
-    }
+
+
 
     final stats = provider.wakaTimeStats;
     if (stats == null) {
