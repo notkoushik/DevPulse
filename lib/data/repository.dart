@@ -113,13 +113,13 @@ class MockDataRepository implements DataRepository {
   @override
   Future<List<NewsItem>> getNewsFeed({String source = 'all'}) async {
     await _delay();
-    return [];
+    return mock.newsFeed;
   }
 
   @override
   Future<List<TrendingRepo>> getTrendingRepos() async {
     await _delay();
-    return [];
+    return mock.trendingRepos;
   }
 
   // AI

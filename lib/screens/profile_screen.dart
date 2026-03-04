@@ -781,7 +781,7 @@ class ProfileScreen extends StatelessWidget {
       context: context,
       builder: (ctx) {
         return AlertDialog(
-          backgroundColor: theme.card,
+          backgroundColor: theme.surfaceElevated,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(16),
           ),
@@ -1274,7 +1274,7 @@ class ProfileScreen extends StatelessWidget {
         return StatefulBuilder(
           builder: (dialogContext, setDialogState) {
             return AlertDialog(
-              backgroundColor: theme.card,
+              backgroundColor: theme.surfaceElevated,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(16),
               ),
@@ -1462,7 +1462,7 @@ class ProfileScreen extends StatelessWidget {
                       final proceed = await showDialog<bool>(
                         context: dialogContext,
                         builder: (c) => AlertDialog(
-                          backgroundColor: theme.card,
+                          backgroundColor: theme.surfaceElevated,
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(16),
                           ),

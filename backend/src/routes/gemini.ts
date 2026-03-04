@@ -5,7 +5,7 @@ import { AuthRequest } from '../middleware/auth';
 
 export const geminiRouter = Router();
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-2.0-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
 
 function getGenAI(): GoogleGenerativeAI | null {
   const key = process.env.GEMINI_API_KEY?.trim();
@@ -41,8 +41,10 @@ geminiRouter.post('/insights', async (req, res) => {
     const prompt = `You are DevPulse AI, a concise developer productivity analyst embedded in a mobile dashboard app. Given the user's developer statistics, generate 1-3 short, actionable insight cards. Each insight must be:
 - Under 120 characters
 - Specific to the data provided (reference actual numbers)
-- Categorized as one of: tip, warning, achievement, suggestion
+- Categorized as one of: tip, warning, achievement, streak, suggestion
 - Encouraging but honest
+
+Crucially, if the stats include "streak", one of your insights must be of type "streak" and accurately state "Great job on your X-day streak!" where X is exactly the number provided for "streak".
 
 Return ONLY valid JSON with no markdown formatting: { "insights": [{ "text": "...", "type": "..." }] }
 

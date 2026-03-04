@@ -19,9 +19,22 @@ class ApiDataRepository implements DataRepository {
     http.Client? client,
   }) : _client = client ?? http.Client();
 
+  Future<String> _getToken() async {
+    final auth = Supabase.instance.client.auth;
+    var session = auth.currentSession;
+    if (session != null && session.isExpired) {
+      try {
+        final res = await auth.refreshSession();
+        session = res.session;
+      } catch (e) {
+        debugPrint('Token refresh failed: $e');
+      }
+    }
+    return session?.accessToken ?? '';
+  }
+
   Future<Map<String, dynamic>> _getJson(String path) async {
-    final session = Supabase.instance.client.auth.currentSession;
-    final token = session?.accessToken ?? '';
+    final token = await _getToken();
 
     debugPrint('🔗 API → $baseUrl$path (token: ${token.isNotEmpty ? "${token.substring(0, 20)}..." : "EMPTY"})');
 
@@ -41,8 +54,7 @@ class ApiDataRepository implements DataRepository {
   }
 
   Future<Map<String, dynamic>> _postJson(String path, Map<String, dynamic> body) async {
-    final session = Supabase.instance.client.auth.currentSession;
-    final token = session?.accessToken ?? '';
+    final token = await _getToken();
 
     final response = await _client.post(
       Uri.parse('$baseUrl$path'),

@@ -57,6 +57,19 @@ class _GoalsScreenState extends State<GoalsScreen> {
     final goalCategory = category ?? _newCategory;
     if (goalTitle.trim().isEmpty) return;
     context.read<DataProvider>().addGoal(goalTitle.trim(), goalCategory);
+    
+    // Show confirmation Toast/Snackbar
+    ScaffoldMessenger.of(context).clearSnackBars();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Task is added', style: TextStyle(color: Colors.white, fontSize: 13)),
+        backgroundColor: DevPulseColors.success,
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+        margin: const EdgeInsets.only(bottom: 100, left: 20, right: 20),
+      ),
+    );
   }
 
   void _showAddGoalSheet() {
@@ -295,20 +308,33 @@ class _GoalsScreenState extends State<GoalsScreen> {
                 ),
               ),
             ),
-            const SizedBox(width: 8),
+            const SizedBox(width: 12),
             GestureDetector(
               onTap: _showAddGoalSheet,
               child: Container(
-                width: 36,
-                height: 36,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                 decoration: BoxDecoration(
                   color: DevPulseColors.primary,
                   borderRadius: BorderRadius.circular(12),
                 ),
-                child: const Icon(
-                  Icons.add,
-                  size: 18,
-                  color: Colors.white,
+                child: const Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      Icons.add,
+                      size: 16,
+                      color: Colors.white,
+                    ),
+                    SizedBox(width: 4),
+                    Text(
+                      'Add Task',
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

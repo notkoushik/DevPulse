@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_theme.dart';
 import '../data/data_provider.dart';
@@ -94,7 +95,7 @@ class DashboardScreen extends StatelessWidget {
                 background: Padding(
                   padding: const EdgeInsets.only(left: 20, top: 40),
                   child: Text(
-                    'SUNDAY, FEB 22',
+                    DateFormat('EEEE, MMM d').format(DateTime.now()).toUpperCase(),
                     style: TextStyle(
                       fontSize: 11,
                       letterSpacing: 1.5,

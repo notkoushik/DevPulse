@@ -4,7 +4,7 @@ import { AuthRequest } from '../middleware/auth';
 
 export const chatRouter = Router();
 
-const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-2.0-flash';
+const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
 
 function getGenAI(): GoogleGenerativeAI | null {
   const key = process.env.GEMINI_API_KEY?.trim();

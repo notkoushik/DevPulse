@@ -248,3 +248,62 @@ List<Contribution> _generateContributions() {
   }
   return contributions.reversed.toList();
 }
+
+final newsFeed = [
+  NewsItem(
+    id: 'mock_1', 
+    title: 'Flutter Desktop goes to stable', 
+    url: 'https://flutter.dev', 
+    source: 'hackernews', 
+    author: 'flutter_fan', 
+    points: 842, 
+    comments: 125, 
+    timeAgo: '2h ago', 
+    tags: ['flutter', 'release']
+  ),
+  NewsItem(
+    id: 'mock_2', 
+    title: '10 TypeScript tricks for 2026', 
+    url: 'https://dev.to', 
+    source: 'devto', 
+    author: 'johndoe', 
+    points: 420, 
+    comments: 55, 
+    timeAgo: '5h ago', 
+    tags: ['typescript', 'tips']
+  ),
+  NewsItem(
+    id: 'mock_3', 
+    title: 'My top 5 VS Code extensions for productivity', 
+    url: 'https://reddit.com/r/webdev', 
+    source: 'reddit', 
+    author: 'web_dev22', 
+    points: 512, 
+    comments: 89, 
+    timeAgo: '6h ago', 
+    tags: ['webdev', 'productivity']
+  ),
+];
+
+final trendingRepos = [
+  TrendingRepo(
+    name: 'awesome-flutter', 
+    author: 'solido', 
+    description: 'A curated list of awesome Flutter resources', 
+    language: 'Dart', 
+    languageColor: '#00B4AB', 
+    stars: 52000, 
+    todayStars: 156, 
+    url: 'https://github.com/solido/awesome-flutter'
+  ),
+  TrendingRepo(
+    name: 'devpulse-dashboard', 
+    author: 'notkoushik', 
+    description: 'Developer productivity dashboard and AI assistant', 
+    language: 'TypeScript', 
+    languageColor: '#3178C6', 
+    stars: 485, 
+    todayStars: 52, 
+    url: 'https://github.com/notkoushik/devpulse'
+  ),
+];

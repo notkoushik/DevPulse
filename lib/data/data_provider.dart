@@ -150,6 +150,7 @@ class DataProvider extends ChangeNotifier {
       newsFeed = await repository.getNewsFeed(source: source);
     } catch (e) {
       debugPrint('News feed error: $e');
+      newsFeed = mock.newsFeed;
     }
     isLoadingNews = false;
     notifyListeners();
@@ -161,6 +162,7 @@ class DataProvider extends ChangeNotifier {
       notifyListeners();
     } catch (e) {
       debugPrint('Trending repos error: $e');
+      trendingRepos = mock.trendingRepos;
     }
   }
 
