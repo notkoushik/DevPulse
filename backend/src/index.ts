@@ -11,7 +11,7 @@ import { chatRouter } from './routes/chat';
 import { validateEnv, checkSupabaseConnectivity } from './config';
 import { healthRouter } from './routes/health';
 
-dotenv.config();
+dotenv.config({ override: true });
 const config = validateEnv();
 
 const app = express();

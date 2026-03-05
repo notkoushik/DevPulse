@@ -1,32 +1,17 @@
 import { Router } from 'express';
-import { GoogleGenerativeAI } from '@google/generative-ai';
 import { AuthRequest } from '../middleware/auth';
+import { generateChat, ChatMessage } from '../utils/ai';
 
 export const chatRouter = Router();
-
-const GEMINI_MODEL = process.env.GEMINI_MODEL?.trim() || 'gemini-2.5-flash';
-
-function getGenAI(): GoogleGenerativeAI | null {
-  const key = process.env.GEMINI_API_KEY?.trim();
-  if (!key) return null;
-  return new GoogleGenerativeAI(key);
-}
 
 // ─── POST /api/ai/chat ───
 chatRouter.post('/chat', async (req, res) => {
   try {
-    const genAI = getGenAI();
-    if (!genAI) {
-      return res.status(503).json({ error: 'Gemini API key not configured' });
-    }
-
     const { message, history, context } = req.body;
 
     if (!message) {
       return res.status(400).json({ error: 'Missing message' });
     }
-
-    const model = genAI.getGenerativeModel({ model: GEMINI_MODEL });
 
     // Build system context from user stats
     let statsContext = '';
@@ -57,26 +42,22 @@ Guidelines:
 - Be encouraging but realistic
 - If asked about something outside developer productivity, politely redirect`;
 
-    // Build chat history
-    const chatHistory = (history || []).map((h: any) => ({
-      role: h.role === 'user' ? 'user' : 'model',
-      parts: [{ text: h.content }],
-    }));
+    // Construct full message history Array
+    const messages: ChatMessage[] = [];
+    messages.push({ role: 'system', content: systemPrompt });
 
-    const chat = model.startChat({
-      history: [
-        { role: 'user', parts: [{ text: systemPrompt }] },
-        { role: 'model', parts: [{ text: 'Understood! I\'m DevPulse AI, ready to help you improve your developer productivity. What would you like to know?' }] },
-        ...chatHistory,
-      ],
-    });
+    if (history && Array.isArray(history)) {
+      history.forEach((h: any) => {
+        messages.push({ role: h.role === 'user' ? 'user' : 'model', content: h.content });
+      });
+    }
 
-    const result = await chat.sendMessage(message);
-    const reply = result.response.text().trim();
+    messages.push({ role: 'user', content: message });
 
+    const reply = await generateChat(messages);
     res.json({ reply });
   } catch (err: any) {
-    console.error('Gemini chat error:', err.message);
+    console.error('AI chat error:', err.message);
     res.status(500).json({ error: 'AI chat unavailable' });
   }
 });

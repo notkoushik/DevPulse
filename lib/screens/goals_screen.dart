@@ -291,55 +291,6 @@ class _GoalsScreenState extends State<GoalsScreen> {
           pinned: true,
           backgroundColor: Colors.transparent,
           elevation: 0,
-          actions: [
-            GestureDetector(
-              onTap: () => PomodoroTimer.show(context),
-              child: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: theme.fill2,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(
-                  Icons.timer,
-                  size: 16,
-                  color: DevPulseColors.primary,
-                ),
-              ),
-            ),
-            const SizedBox(width: 12),
-            GestureDetector(
-              onTap: _showAddGoalSheet,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                decoration: BoxDecoration(
-                  color: DevPulseColors.primary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.add,
-                      size: 16,
-                      color: Colors.white,
-                    ),
-                    SizedBox(width: 4),
-                    Text(
-                      'Add Task',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(width: 20),
-          ],
           flexibleSpace: ClipRect(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
@@ -373,6 +324,8 @@ class _GoalsScreenState extends State<GoalsScreen> {
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               const SizedBox(height: 16),
+              _buildTopActionsRow(context, theme),
+              const SizedBox(height: 16),
               _buildProgressCard(theme, done, total, pct),
               const SizedBox(height: 12),
               _buildCategoryStreaks(theme, provider),
@@ -394,6 +347,86 @@ class _GoalsScreenState extends State<GoalsScreen> {
   }
 
   // Header removed, incorporated into SliverAppBar
+
+  // =====================================================================
+  //  Action Buttons Row
+  // =====================================================================
+
+  Widget _buildTopActionsRow(BuildContext context, DevPulseTheme theme) {
+    return Row(
+      children: [
+        Expanded(
+          child: GlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            onTap: () => PomodoroTimer.show(context),
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: DevPulseColors.primary.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.timer,
+                    size: 16,
+                    color: DevPulseColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Focus Timer',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: GlassCard(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            onTap: _showAddGoalSheet,
+            child: Row(
+              children: [
+                Container(
+                  width: 32,
+                  height: 32,
+                  decoration: BoxDecoration(
+                    color: DevPulseColors.success.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.add,
+                    size: 16,
+                    color: DevPulseColors.success,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    'Add Task',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: theme.textSecondary,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   // =====================================================================
   //  2. Progress Card

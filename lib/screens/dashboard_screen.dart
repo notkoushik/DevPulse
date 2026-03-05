@@ -11,6 +11,7 @@ import '../widgets/glass_card.dart';
 import '../widgets/progress_ring.dart';
 import '../widgets/pomodoro_timer.dart';
 import '../widgets/ai_insight_card.dart';
+import '../widgets/ai_summary_section.dart';
 
 class DashboardScreen extends StatelessWidget {
   const DashboardScreen({super.key});
@@ -113,13 +114,8 @@ class DashboardScreen extends StatelessWidget {
           sliver: SliverList(
             delegate: SliverChildListDelegate([
               const SizedBox(height: 16),
-              // ── 2. Daily Briefing Banner ──
-              _buildDailyBriefing(
-                theme,
-                yesterdayCommits: yesterdayCommits,
-                lcYesterday: lcYesterday,
-                streak: streak,
-              ),
+              // ── 2. Daily Briefing Banner (AI) ──
+              const AiSummarySection(screenContext: 'dashboard'),
               const SizedBox(height: 16),
 
               // ── AI Insights ──
@@ -181,67 +177,7 @@ class DashboardScreen extends StatelessWidget {
 
   // Header removed, incorporated into SliverAppBar
 
-  // ── 2. Daily Briefing Banner ──
-  Widget _buildDailyBriefing(
-    DevPulseTheme theme, {
-    required int yesterdayCommits,
-    required int lcYesterday,
-    required int streak,
-  }) {
-    return GlassCard(
-      padding: const EdgeInsets.all(20),
-      delay: 0.1,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 28,
-            height: 28,
-            decoration: BoxDecoration(
-              color: DevPulseColors.warning.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: const Icon(
-              Icons.wb_sunny,
-              size: 14,
-              color: DevPulseColors.warning,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Yesterday: $yesterdayCommits commits · $lcYesterday LC solved',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.textSecondary,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Suggestion: Solve 1 Medium problem today',
-                  style: TextStyle(
-                    fontSize: 11,
-                    color: theme.textMuted,
-                  ),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Your streak is at $streak days — don\'t break it!',
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: DevPulseColors.danger,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   // ── 3. Streak Card ──
   Widget _buildStreakCard(

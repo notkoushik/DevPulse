@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import '../data/data_provider.dart';
 import '../data/models.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/ai_insight_card.dart';
 
 class WakaTimeScreen extends StatelessWidget {
   const WakaTimeScreen({super.key});
@@ -82,6 +83,10 @@ class WakaTimeScreen extends StatelessWidget {
 
               // ── This Week Stats Row ──
               _buildWeekRow(theme, stats),
+              const SizedBox(height: 16),
+
+              // ── AI Insights ──
+              const AiInsightSection(screenContext: 'wakatime'),
               const SizedBox(height: 16),
 
               // ── Daily Coding Chart ──

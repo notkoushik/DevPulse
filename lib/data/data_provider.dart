@@ -253,6 +253,14 @@ class DataProvider extends ChangeNotifier {
           'goals': goals.map((g) => {'title': g.title, 'completed': g.completed, 'category': g.category}).toList(),
           'streak': userData?.streak ?? 0,
         };
+      case 'wakatime':
+        return {
+          'todayText': wakaTimeStats?.todayText ?? '',
+          'weekText': wakaTimeStats?.weekText ?? '',
+          'dailyAverage': wakaTimeStats?.dailyAverage ?? '',
+          'languages': wakaTimeStats?.languages.map((l) => {'name': l.name, 'percent': l.percent}).toList() ?? [],
+          'editors': wakaTimeStats?.editors.map((e) => {'name': e.name, 'text': e.text}).toList() ?? [],
+        };
       default:
         return {};
     }
