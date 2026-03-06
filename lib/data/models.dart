@@ -629,6 +629,33 @@ class NewsItem {
       );
 }
 
+class AiNewsItem {
+  final String id;
+  final String title;
+  final String url;
+  final String? imageUrl;
+  final String summary;
+  final String publishedAt;
+
+  const AiNewsItem({
+    required this.id,
+    required this.title,
+    required this.url,
+    this.imageUrl,
+    required this.summary,
+    required this.publishedAt,
+  });
+
+  factory AiNewsItem.fromJson(Map<String, dynamic> json) => AiNewsItem(
+        id: json['id']?.toString() ?? '',
+        title: json['title'] ?? '',
+        url: json['url'] ?? '',
+        imageUrl: json['image_url'],
+        summary: json['summary'] ?? '',
+        publishedAt: json['published_at'] ?? '',
+      );
+}
+
 class TrendingRepo {
   final String name;
   final String author;

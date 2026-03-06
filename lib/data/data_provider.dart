@@ -27,6 +27,7 @@ class DataProvider extends ChangeNotifier {
 
   // News & AI state
   List<NewsItem> newsFeed = [];
+  List<AiNewsItem> aiNewsFeed = [];
   List<TrendingRepo> trendingRepos = [];
   Map<String, List<AiInsight>> aiInsights = {};
   Map<String, String> aiSummaries = {};
@@ -151,6 +152,19 @@ class DataProvider extends ChangeNotifier {
     } catch (e) {
       debugPrint('News feed error: $e');
       newsFeed = mock.newsFeed;
+    }
+    isLoadingNews = false;
+    notifyListeners();
+  }
+
+  Future<void> loadAiNewsFeed() async {
+    isLoadingNews = true;
+    notifyListeners();
+    try {
+      aiNewsFeed = await repository.getAiNewsFeed();
+    } catch (e) {
+      debugPrint('AI News feed error: $e');
+      aiNewsFeed = [];
     }
     isLoadingNews = false;
     notifyListeners();

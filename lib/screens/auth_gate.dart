@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../data/data_provider.dart';
 import 'login_screen.dart';
 import 'main_screen.dart';
+import 'profile_setup_screen.dart';
 
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
@@ -29,14 +30,35 @@ class _AuthGateState extends State<AuthGate> {
         final session = snapshot.data?.session;
 
         if (session != null) {
-          // Trigger data load once when session becomes valid
-          if (!_dataLoaded) {
-            _dataLoaded = true;
-            WidgetsBinding.instance.addPostFrameCallback((_) {
-              context.read<DataProvider>().loadAllData();
-            });
-          }
-          return const MainScreen();
+          return FutureBuilder<Map<String, dynamic>?>(
+            future: Supabase.instance.client
+                .from('profiles')
+                .select('github_username')
+                .eq('id', session.user.id)
+                .maybeSingle(),
+            builder: (context, profileSnapshot) {
+              if (profileSnapshot.connectionState == ConnectionState.waiting) {
+                return const Scaffold(
+                  body: Center(child: CircularProgressIndicator()),
+                );
+              }
+
+              // Load data once when we know they're fully set up
+              if (!_dataLoaded && profileSnapshot.hasData && profileSnapshot.data?['github_username'] != null) {
+                _dataLoaded = true;
+                WidgetsBinding.instance.addPostFrameCallback((_) {
+                  context.read<DataProvider>().loadAllData();
+                });
+              }
+
+              // Route based on profile existence
+              if (profileSnapshot.hasData && profileSnapshot.data?['github_username'] != null) {
+                return const MainScreen();
+              } else {
+                return ProfileSetupScreen(user: session.user);
+              }
+            },
+          );
         }
 
         // Reset flag when user logs out so next login triggers reload

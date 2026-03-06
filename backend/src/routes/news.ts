@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import axios from 'axios';
 import { cache } from '../cache';
+import { supabase } from '../middleware/auth';
 
 export const newsRouter = Router();
 
@@ -271,6 +272,27 @@ function _redditTimeAgo(utcTimestamp: number): string {
 }
 
 // ─── Routes ───
+
+// GET /api/news/ai-feed
+newsRouter.get('/ai-feed', async (_req, res) => {
+  try {
+    const { data, error } = await supabase
+      .from('ai_news_feed')
+      .select('*')
+      .order('published_at', { ascending: false })
+      .limit(20);
+
+    if (error) throw error;
+
+    res.json({
+      items: data || [],
+      lastUpdated: new Date().toISOString(),
+    });
+  } catch (err: any) {
+    console.error('AI News feed error:', err.message);
+    res.status(500).json({ error: 'Failed to fetch AI news feed' });
+  }
+});
 
 // GET /api/news/feed?source=all|hackernews|devto
 newsRouter.get('/feed', async (req, res) => {

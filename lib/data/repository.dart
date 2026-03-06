@@ -16,6 +16,7 @@ abstract class DataRepository {
 
   // News
   Future<List<NewsItem>> getNewsFeed({String source = 'all'});
+  Future<List<AiNewsItem>> getAiNewsFeed();
   Future<List<TrendingRepo>> getTrendingRepos();
 
   // AI
@@ -114,6 +115,12 @@ class MockDataRepository implements DataRepository {
   Future<List<NewsItem>> getNewsFeed({String source = 'all'}) async {
     await _delay();
     return mock.newsFeed;
+  }
+
+  @override
+  Future<List<AiNewsItem>> getAiNewsFeed() async {
+    await _delay();
+    return [];
   }
 
   @override

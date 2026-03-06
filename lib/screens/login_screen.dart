@@ -60,6 +60,21 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  Future<void> _signInWithGitHub() async {
+    try {
+      await Supabase.instance.client.auth.signInWithOAuth(
+        OAuthProvider.github,
+        redirectTo: 'io.supabase.devpulse://login-callback/',
+      );
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = AppTheme.of(context);
@@ -206,6 +221,42 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                       ),
                     ).animate().fadeIn(delay: 400.ms),
+                    const SizedBox(height: 16),
+                    
+                    // Divider
+                    Row(
+                      children: [
+                        Expanded(child: Divider(color: theme.fill2, thickness: 1)),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text('OR', style: TextStyle(color: theme.textGhost, fontSize: 12)),
+                        ),
+                        Expanded(child: Divider(color: theme.fill2, thickness: 1)),
+                      ],
+                    ).animate().fadeIn(delay: 450.ms),
+                    const SizedBox(height: 16),
+
+                    // GitHub OAuth Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: OutlinedButton.icon(
+                        onPressed: _signInWithGitHub,
+                        icon: const Icon(Icons.code), // Simulating GH icon
+                        label: const Text(
+                          'Continue with GitHub',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: theme.text,
+                          side: BorderSide(color: theme.fill2, width: 2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ).animate().fadeIn(delay: 480.ms),
+
                     const SizedBox(height: 24),
 
                     // Toggle Mode

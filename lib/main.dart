@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_provider.dart';
 import 'screens/auth_gate.dart';
@@ -13,15 +14,19 @@ import 'data/data_provider.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // Load environment variables
+  await dotenv.load(fileName: ".env");
+
   // Initialize Supabase
   await Supabase.initialize(
-    url: 'https://jubdkfqkgknarnzebjdf.supabase.co',
-    anonKey: 'sb_publishable_8eQ5wtaV6ZvseruXHWZPWw_PmRHxX-w',
+    url: dotenv.env['SUPABASE_URL'] ?? '',
+    anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
 
-  // Load persisted server URL
+  // Load persisted server URL or fallback to env var
   final prefs = await SharedPreferences.getInstance();
-  final savedUrl = prefs.getString('server_base_url') ?? 'http://192.168.1.204:3001/api';
+  final defaultUrl = dotenv.env['API_BASE_URL'] ?? 'http://192.168.1.204:3001/api';
+  final savedUrl = prefs.getString('server_base_url') ?? defaultUrl;
 
   // Attempt to set high refresh rate on Android
   if (Platform.isAndroid) {

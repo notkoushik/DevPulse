@@ -1,6 +1,10 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+import morgan from 'morgan';
+
 import { githubRouter } from './routes/github';
 import { leetcodeRouter } from './routes/leetcode';
 import { wakatimeRouter } from './routes/wakatime';
@@ -10,6 +14,7 @@ import { geminiRouter } from './routes/gemini';
 import { chatRouter } from './routes/chat';
 import { validateEnv, checkSupabaseConnectivity } from './config';
 import { healthRouter } from './routes/health';
+import { initNewsWorker } from './workers/newsWorker';
 
 dotenv.config({ override: true });
 const config = validateEnv();
@@ -18,7 +23,23 @@ const app = express();
 const PORT = config.port;
 
 // Middleware
+app.use(helmet());
+
+// Logging
+app.use(morgan('combined'));
+
+// Cross-Origin Resource Sharing
 app.use(cors());
+
+// Rate Limiting
+const limiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    limit: 100, // Limit each IP to 100 requests per windowMs
+    standardHeaders: 'draft-7',
+    legacyHeaders: false,
+});
+app.use(limiter);
+
 app.use(express.json());
 
 // Health check (liveness probe)
@@ -59,8 +80,11 @@ app.listen(PORT, async () => {
     const supaCheck = await checkSupabaseConnectivity();
     if (supaCheck.ok) {
         console.log(`  Supabase: connected (${supaCheck.latencyMs}ms)`);
+
+        // Initialize Background Workers only if DB is up
+        initNewsWorker();
     } else {
         console.error(`  Supabase: FAILED - ${supaCheck.error} (${supaCheck.latencyMs}ms)`);
-        console.error('  WARNING: Auth will not work until Supabase is reachable.');
+        console.error('  WARNING: Auth and DB Workers will not work until Supabase is reachable.');
     }
 });

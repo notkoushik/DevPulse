@@ -137,6 +137,14 @@ class ApiDataRepository implements DataRepository {
   }
 
   @override
+  Future<List<AiNewsItem>> getAiNewsFeed() async {
+    final data = await _getJson('/news/ai-feed');
+    return (data['items'] as List? ?? [])
+        .map((e) => AiNewsItem.fromJson(e))
+        .toList();
+  }
+
+  @override
   Future<List<TrendingRepo>> getTrendingRepos() async {
     final data = await _getJson('/news/trending');
     return (data['repos'] as List? ?? [])

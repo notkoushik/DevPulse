@@ -69,6 +69,7 @@ class _DevNewsScreenState extends State<DevNewsScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = context.read<DataProvider>();
+      provider.loadAiNewsFeed();
       provider.loadNewsFeed();
       provider.loadTrendingRepos();
     });
@@ -150,7 +151,7 @@ class _DevNewsScreenState extends State<DevNewsScreen>
                 letterSpacing: 0.5,
               ),
               tabs: const [
-                Tab(text: 'Top Stories'),
+                Tab(text: 'AI Digest'),
                 Tab(text: 'Dev.to'),
                 Tab(text: 'Reddit'),
                 Tab(text: 'Trending'),
@@ -163,16 +164,12 @@ class _DevNewsScreenState extends State<DevNewsScreen>
       body: TabBarView(
         controller: _tabController,
         children: [
-          // Tab 1: Top Stories (Hacker News)
-          _buildNewsList(
+          // Tab 1: AI Digest Summary
+          _buildAiDigestList(
             theme: theme,
-            items: provider.newsFeed
-                .where((n) =>
-                    n.source.toLowerCase() == 'hackernews' ||
-                    n.source.toLowerCase() == 'hn')
-                .toList(),
+            items: provider.aiNewsFeed,
             isLoading: provider.isLoadingNews,
-            emptyLabel: 'No top stories yet',
+            emptyLabel: 'No AI summaries yet',
           ),
 
           // Tab 2: Dev.to
@@ -209,7 +206,195 @@ class _DevNewsScreenState extends State<DevNewsScreen>
   }
 
   // ══════════════════════════════════════════════════════════════
-  //  NEWS LIST (Tabs 1 & 2)
+  //  AI DIGEST LIST (Tab 1)
+  // ══════════════════════════════════════════════════════════════
+
+  Widget _buildAiDigestList({
+    required DevPulseTheme theme,
+    required List<AiNewsItem> items,
+    required bool isLoading,
+    required String emptyLabel,
+  }) {
+    if (isLoading && items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const CircularProgressIndicator(
+              strokeWidth: 2,
+              color: DevPulseColors.primary,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Analyzing latest tech news...',
+              style: TextStyle(fontSize: 12, color: theme.textMuted),
+            ),
+          ],
+        ),
+      );
+    }
+
+    if (items.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.auto_awesome,
+              size: 40,
+              color: DevPulseColors.primary.withOpacity(0.5),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              emptyLabel,
+              style: TextStyle(fontSize: 13, color: theme.textMuted),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      physics: const BouncingScrollPhysics(),
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 16, bottom: 32),
+      itemCount: items.length,
+      itemBuilder: (context, index) {
+        final item = items[index];
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: _buildAiDigestCard(theme, item),
+        )
+            .animate()
+            .fadeIn(
+              duration: 400.ms,
+              delay: (50 * index).ms,
+            )
+            .slideY(begin: 0.1);
+      },
+    );
+  }
+
+  Widget _buildAiDigestCard(DevPulseTheme theme, AiNewsItem item) {
+    return GlassCard(
+      onTap: () => _openUrl(item.url),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Ai Badge Row
+                  Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: DevPulseColors.primary.withOpacity(0.2),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: DevPulseColors.primary.withOpacity(0.3),
+                            width: 1,
+                          )
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.auto_awesome, size: 12, color: DevPulseColors.primary),
+                            const SizedBox(width: 6),
+                            Text(
+                              'AI DIGEST',
+                              style: TextStyle(
+                                fontSize: 10,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: 1.0,
+                                color: DevPulseColors.primary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const Spacer(),
+                      // Optional: Show source or 'AI Generated' tag here
+                    ],
+                  ),
+                  
+                  const SizedBox(height: 16),
+
+                  // Image if present
+                  if (item.imageUrl != null && item.imageUrl!.isNotEmpty) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(12),
+                        child: Image.network(
+                          item.imageUrl!,
+                          height: 160,
+                          width: double.infinity,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                  ],
+
+                  // Title
+                  Text(
+                    item.title,
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: theme.text,
+                      height: 1.3,
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 12),
+
+                  // AI Summary Text
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.fill2,
+                      borderRadius: BorderRadius.circular(8),
+                      border: Border.all(
+                        color: theme.borderSubtle,
+                      )
+                    ),
+                    child: Text(
+                      item.summary,
+                      style: TextStyle(
+                        fontSize: 14,
+                        height: 1.6,
+                        color: theme.textSecondary,
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+
+                  // Footer: Read more link
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Read full article',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: DevPulseColors.primary,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 16,
+                        color: DevPulseColors.primary,
+                      ),
+                    ],
+                  )
+                ],
+      ),
+    );
+  }
+
+  // ══════════════════════════════════════════════════════════════
+  //  NEWS LIST (Tabs 2 & 3)
   // ══════════════════════════════════════════════════════════════
 
   Widget _buildNewsList({
