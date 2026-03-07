@@ -23,13 +23,15 @@ export async function sendEmail({
     }
 
     try {
-        const data = await resend.emails.send({
+        const options: any = {
             from: 'DevPulse <notifications@devpulse.com>', // Replace with your verified domain
             to: [to],
             subject: subject,
-            html: html,
-            text: text,
-        });
+        };
+        if (html) options.html = html;
+        if (text) options.text = text;
+
+        const data = await resend.emails.send(options);
 
         console.log(`Email sent successfully to ${to}`, data);
         return data;
