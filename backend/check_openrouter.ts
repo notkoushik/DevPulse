@@ -1,6 +1,8 @@
 import axios from 'axios';
+import dotenv from 'dotenv';
+dotenv.config();
 
-const OPENROUTER_API_KEY = "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";
+const OPENROUTER_API_KEY = process.env.OPENROUTER_API_KEY || "";
 
 async function testOpenRouter() {
     console.log("Testing OpenRouter API with llama-3-8b-instruct:free...");
