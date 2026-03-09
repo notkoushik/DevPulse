@@ -31,21 +31,21 @@ app.use(morgan('combined'));
 // Cross-Origin Resource Sharing
 app.use(cors());
 
-// Rate Limiting
+app.use(express.json());
+
+// Health check (liveness probe) — placed BEFORE rate limiter so monitoring pings are never blocked
+app.get('/api/health', (_req, res) => {
+    res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
+// Rate Limiting (applied AFTER health check)
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    limit: 100, // Limit each IP to 100 requests per windowMs
+    limit: 200, // Limit each IP to 200 requests per windowMs
     standardHeaders: 'draft-7',
     legacyHeaders: false,
 });
 app.use(limiter);
-
-app.use(express.json());
-
-// Health check (liveness probe)
-app.get('/api/health', (_req, res) => {
-    res.json({ status: 'ok', timestamp: new Date().toISOString() });
-});
 
 // Deep health check (connectivity probe, no auth)
 app.use('/api/health', healthRouter);

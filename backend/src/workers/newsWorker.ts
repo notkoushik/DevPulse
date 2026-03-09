@@ -9,7 +9,6 @@ const parser = new RssParser();
 // List of quality tech feeds
 const RSS_FEEDS = [
     'https://techcrunch.com/feed/',
-    'https://www.theverge.com/rss/frontpage',
     'https://hnrss.org/frontpage',
 ];
 
