@@ -1299,46 +1299,22 @@ class ProfileScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 12),
-                    TextField(
-                      controller: controller,
-                      style: GoogleFonts.jetBrainsMono(
-                        fontSize: 13,
-                        color: theme.text,
+                    // Read-only URL display
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                      decoration: BoxDecoration(
+                        color: theme.fill2,
+                        borderRadius: BorderRadius.circular(10),
                       ),
-                      onChanged: (_) {
-                        if (testPassed != null) {
-                          setDialogState(() {
-                            testPassed = null;
-                            testMessage = '';
-                          });
-                        }
-                      },
-                      decoration: InputDecoration(
-                        hintText: 'http://192.168.1.35:3001/api',
-                        hintStyle:
-                            TextStyle(color: theme.textDim, fontSize: 12),
-                        filled: true,
-                        fillColor: theme.fill2,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(10),
-                          borderSide: BorderSide.none,
+                      child: Text(
+                        'https://devpulse-8gkb.onrender.com/api',
+                        style: GoogleFonts.jetBrainsMono(
+                          fontSize: 13,
+                          color: theme.text,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(
-                            horizontal: 12, vertical: 10),
+                        textAlign: TextAlign.center,
                       ),
-                    ),
-                    const SizedBox(height: 12),
-                    Wrap(
-                      spacing: 6,
-                      runSpacing: 6,
-                      children: [
-                        _quickIPChip(ctx, controller, theme, 'Emulator',
-                            'http://10.0.2.2:3001/api'),
-                        _quickIPChip(ctx, controller, theme, 'Localhost',
-                            'http://localhost:3001/api'),
-                        _quickIPChip(ctx, controller, theme, 'Wi-Fi',
-                            'http://192.168.1.35:3001/api'),
-                      ],
                     ),
                     const SizedBox(height: 16),
 
@@ -1381,7 +1357,7 @@ class ProfileScreen extends StatelessWidget {
                                   testMessage = '';
                                 });
                                 final result = await provider
-                                    .testConnection(controller.text.trim());
+                                    .testConnection('https://devpulse-8gkb.onrender.com/api');
                                 setDialogState(() {
                                   isTesting = false;
                                   if (result == null) {
@@ -1447,78 +1423,9 @@ class ProfileScreen extends StatelessWidget {
                 TextButton(
                   onPressed: () => Navigator.pop(ctx),
                   child: Text(
-                    'Cancel',
+                    'Close',
                     style: GoogleFonts.inter(
-                        fontSize: 13, color: theme.textMuted),
-                  ),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    final newUrl = controller.text.trim();
-                    if (newUrl.isEmpty) return;
-
-                    // Warn if test hasn't passed
-                    if (testPassed != true) {
-                      final proceed = await showDialog<bool>(
-                        context: dialogContext,
-                        builder: (c) => AlertDialog(
-                          backgroundColor: theme.surfaceElevated,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          title: Text(
-                            'Connection Not Verified',
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: theme.text,
-                            ),
-                          ),
-                          content: Text(
-                            'The connection test has not passed. Save anyway?',
-                            style: GoogleFonts.inter(
-                              fontSize: 12,
-                              color: theme.textSecondary,
-                            ),
-                          ),
-                          actions: [
-                            TextButton(
-                              onPressed: () => Navigator.pop(c, false),
-                              child: Text('Cancel',
-                                  style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      color: theme.textMuted)),
-                            ),
-                            TextButton(
-                              onPressed: () => Navigator.pop(c, true),
-                              child: Text('Save Anyway',
-                                  style: GoogleFonts.inter(
-                                      fontSize: 13,
-                                      color: DevPulseColors.warning,
-                                      fontWeight: FontWeight.w600)),
-                            ),
-                          ],
-                        ),
-                      );
-                      if (proceed != true) return;
-                    }
-
-                    if (repo is ApiDataRepository) {
-                      repo.baseUrl = newUrl;
-                      // Persist to SharedPreferences
-                      final prefs = await SharedPreferences.getInstance();
-                      await prefs.setString('server_base_url', newUrl);
-                      provider.loadAllData();
-                    }
-                    if (ctx.mounted) Navigator.pop(ctx);
-                  },
-                  child: Text(
-                    'Save & Reload',
-                    style: GoogleFonts.inter(
-                      fontSize: 13,
-                      color: DevPulseColors.primary,
-                      fontWeight: FontWeight.w600,
-                    ),
+                        fontSize: 13, color: DevPulseColors.primary, fontWeight: FontWeight.normal),
                   ),
                 ),
               ],
@@ -1530,28 +1437,8 @@ class ProfileScreen extends StatelessWidget {
   }
 
   Widget _quickIPChip(BuildContext context, TextEditingController controller,
-      dynamic theme, String label, String url) {
-    return GestureDetector(
-      onTap: () => controller.text = url,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-        decoration: BoxDecoration(
-          color: DevPulseColors.primary.withOpacity(0.1),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: DevPulseColors.primary.withOpacity(0.2),
-          ),
-        ),
-        child: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 10,
-            color: DevPulseColors.primary,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ),
-    );
+      dynamic theme, String label, String ip) {
+    return const SizedBox.shrink(); // Legacy function, no longer used
   }
 }
 

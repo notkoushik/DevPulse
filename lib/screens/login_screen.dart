@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../theme/app_theme.dart';
 import '../widgets/glass_card.dart';
 
@@ -70,6 +71,52 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+        );
+      }
+    }
+  }
+
+  Future<void> _signInWithGoogle() async {
+    try {
+      // 1. Initialize the Google Sign-In instance
+      const webClientId = '755061611579-5kntic6kl2imlbuafeklcmmkq10ns2a8.apps.googleusercontent.com';
+      const androidClientId = '755061611579-7hjnppclq3b0tt1emcgnt4a1oojsbd75.apps.googleusercontent.com';
+
+      // We need both the Web Client ID (for Supabase backend) and Android Client ID (for native UI rendering)
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        serverClientId: webClientId,
+        clientId: androidClientId,
+      );
+
+      // 2. Trigger the native Google Sign-In flow
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
+        return; // The user canceled the login
+      }
+
+      // 3. Obtain auth details from the request
+      final googleAuth = await googleUser.authentication;
+      final accessToken = googleAuth.accessToken;
+      final idToken = googleAuth.idToken;
+
+      if (accessToken == null) {
+        throw 'No Access Token found.';
+      }
+      if (idToken == null) {
+        throw 'No ID Token found.';
+      }
+
+      // 4. Send the ID token and access token to Supabase to create a session
+      await Supabase.instance.client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: accessToken,
+      );
+
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Google Sign-In Error: $e'), backgroundColor: Colors.red),
         );
       }
     }
@@ -256,6 +303,29 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ).animate().fadeIn(delay: 480.ms),
+
+                    const SizedBox(height: 12),
+
+                    // Google OAuth Button
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: OutlinedButton.icon(
+                        onPressed: _signInWithGoogle,
+                        icon: Icon(Icons.g_mobiledata, size: 28, color: theme.text),
+                        label: const Text(
+                          'Continue with Google',
+                          style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600),
+                        ),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: theme.text,
+                          side: BorderSide(color: theme.fill2, width: 2),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                      ),
+                    ).animate().fadeIn(delay: 490.ms),
 
                     const SizedBox(height: 24),
 

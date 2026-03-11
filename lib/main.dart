@@ -25,7 +25,7 @@ void main() async {
 
   // Load persisted server URL or fallback to env var
   final prefs = await SharedPreferences.getInstance();
-  final defaultUrl = dotenv.env['API_BASE_URL'] ?? 'http://192.168.1.204:3001/api';
+  final defaultUrl = dotenv.env['API_BASE_URL'] ?? 'https://devpulse-8gkb.onrender.com/api';
   final savedUrl = prefs.getString('server_base_url') ?? defaultUrl;
 
   // Attempt to set high refresh rate on Android
