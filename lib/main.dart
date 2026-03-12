@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_displaymode/flutter_displaymode.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'theme/app_theme.dart';
 import 'theme/theme_provider.dart';
@@ -23,10 +22,11 @@ void main() async {
     anonKey: dotenv.env['SUPABASE_ANON_KEY'] ?? '',
   );
 
-  // Load persisted server URL or fallback to env var
-  final prefs = await SharedPreferences.getInstance();
-  final defaultUrl = dotenv.env['API_BASE_URL'] ?? 'https://devpulse-8gkb.onrender.com/api';
-  final savedUrl = prefs.getString('server_base_url') ?? defaultUrl;
+  // Load environment variables and enforce production URL if empty
+  String apiUrl = dotenv.env['API_BASE_URL'] ?? '';
+  if (apiUrl.trim().isEmpty) {
+    apiUrl = 'https://devpulse-8gkb.onrender.com/api';
+  }
 
   // Attempt to set high refresh rate on Android
   if (Platform.isAndroid) {
@@ -44,7 +44,7 @@ void main() async {
         ChangeNotifierProvider(
           create: (_) => DataProvider(
             repository: ApiDataRepository(
-              baseUrl: savedUrl,
+              baseUrl: apiUrl,
             ),
           ),
         ),

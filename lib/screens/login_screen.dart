@@ -79,13 +79,15 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _signInWithGoogle() async {
     try {
       // 1. Initialize the Google Sign-In instance
+      // On Android, the app is identified by its package name + SHA-1 fingerprint
+      // registered in Google Cloud Console. Only the Web Client ID is needed here
+      // as the serverClientId, to obtain the idToken for Supabase authentication.
+      // The 'clientId' parameter is for iOS/web only and must NOT be set on Android.
       const webClientId = '755061611579-5kntic6kl2imlbuafeklcmmkq10ns2a8.apps.googleusercontent.com';
-      const androidClientId = '755061611579-7hjnppclq3b0tt1emcgnt4a1oojsbd75.apps.googleusercontent.com';
 
-      // We need both the Web Client ID (for Supabase backend) and Android Client ID (for native UI rendering)
       final GoogleSignIn googleSignIn = GoogleSignIn(
         serverClientId: webClientId,
-        clientId: androidClientId,
+        scopes: ['email'],
       );
 
       // 2. Trigger the native Google Sign-In flow
