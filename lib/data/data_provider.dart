@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'models.dart';
 import 'repository.dart';
 import 'api_repository.dart';
@@ -25,6 +26,10 @@ class DataProvider extends ChangeNotifier {
   List<AppBadge> badges = [];
   List<ActivityItem> activityFeed = [];
 
+  // Connected account usernames (from Supabase profile)
+  String? githubUsername;
+  String? leetcodeUsername;
+
   // News & AI state
   List<NewsItem> newsFeed = [];
   List<AiNewsItem> aiNewsFeed = [];
@@ -40,6 +45,22 @@ class DataProvider extends ChangeNotifier {
     notifyListeners();
 
     final errors = <String>[];
+
+    // ── Supabase Profile (connected usernames) ──
+    try {
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId != null) {
+        final profile = await Supabase.instance.client
+            .from('profiles')
+            .select('github_username, leetcode_username')
+            .eq('id', userId)
+            .maybeSingle();
+        githubUsername = profile?['github_username'] as String? ?? '';
+        leetcodeUsername = profile?['leetcode_username'] as String? ?? '';
+      }
+    } catch (e) {
+      debugPrint('❌ Profile fetch failed: $e');
+    }
 
     // ── GitHub (user + stats) ──
     try {
@@ -210,6 +231,7 @@ class DataProvider extends ChangeNotifier {
     final context = <String, dynamic>{};
     if (userData != null) {
       context['github'] = {
+        'username': githubUsername ?? userData!.username,
         'todayCommits': githubStats?.todayCommits ?? 0,
         'streak': userData!.streak,
         'totalRepos': userData!.totalRepos,
@@ -219,6 +241,7 @@ class DataProvider extends ChangeNotifier {
     }
     if (leetcodeStats != null) {
       context['leetcode'] = {
+        'username': leetcodeUsername ?? '',
         'totalSolved': leetcodeStats!.totalSolved,
         'totalQuestions': leetcodeStats!.totalQuestions,
         'ranking': leetcodeStats!.ranking,

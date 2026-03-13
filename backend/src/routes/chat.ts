@@ -18,11 +18,13 @@ chatRouter.post('/chat', async (req, res) => {
     if (context) {
       if (context.github) {
         const g = context.github;
-        statsContext += `\nGitHub: ${g.todayCommits || 0} commits today, streak: ${g.streak || 0} days, ${g.totalRepos || 0} repos, ${g.totalStars || 0} stars.`;
+        const ghUser = g.username ? `@${g.username}` : 'their GitHub account';
+        statsContext += `\nGitHub (${ghUser}): ${g.todayCommits || 0} commits today, streak: ${g.streak || 0} days, ${g.totalRepos || 0} repos, ${g.totalStars || 0} stars.`;
       }
       if (context.leetcode) {
         const l = context.leetcode;
-        statsContext += `\nLeetCode: ${l.totalSolved || 0}/${l.totalQuestions || 0} solved, ranking: ${l.ranking || 'N/A'}, acceptance: ${l.acceptanceRate || 0}%.`;
+        const lcUser = l.username ? `@${l.username}` : 'their LeetCode account';
+        statsContext += `\nLeetCode (${lcUser}): ${l.totalSolved || 0}/${l.totalQuestions || 0} solved, ranking: ${l.ranking || 'N/A'}, acceptance: ${l.acceptanceRate || 0}%.`;
       }
       if (context.goals) {
         const goals = context.goals;

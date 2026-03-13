@@ -711,6 +711,12 @@ class ProfileScreen extends StatelessWidget {
   // ── 4. Connected Accounts ──
   Widget _buildConnectedAccounts(
       BuildContext context, dynamic theme, dynamic user) {
+    final provider = context.read<DataProvider>();
+    final lcUsername = provider.leetcodeUsername ?? '';
+    final ghUsername = provider.githubUsername?.isNotEmpty == true
+        ? provider.githubUsername!
+        : user.username as String;
+
     return GlassCard(
       padding: const EdgeInsets.all(20),
       child: Column(
@@ -749,7 +755,7 @@ class ProfileScreen extends StatelessWidget {
             Icons.code,
             theme.text,
             'GitHub',
-            '@${user.username}',
+            '@$ghUsername',
           ),
 
           Container(
@@ -758,13 +764,13 @@ class ProfileScreen extends StatelessWidget {
             margin: const EdgeInsets.symmetric(vertical: 12),
           ),
 
-          // LeetCode — show 'Not set' if username is same as GitHub (likely not configured)
+          // LeetCode
           _connectedAccountRow(
             theme,
             Icons.code,
             DevPulseColors.warning,
             'LeetCode',
-            'Tap Edit to configure',
+            lcUsername.isNotEmpty ? '@$lcUsername' : 'Tap Edit to configure',
           ),
         ],
       ),
@@ -773,8 +779,12 @@ class ProfileScreen extends StatelessWidget {
 
   void _showEditAccountsDialog(BuildContext context, dynamic theme) {
     final provider = context.read<DataProvider>();
-    final githubCtrl = TextEditingController(text: provider.userData?.username ?? '');
-    final leetcodeCtrl = TextEditingController();
+    final githubCtrl = TextEditingController(
+        text: provider.githubUsername?.isNotEmpty == true
+            ? provider.githubUsername!
+            : provider.userData?.username ?? '');
+    final leetcodeCtrl = TextEditingController(
+        text: provider.leetcodeUsername ?? '');
     final wakatimeCtrl = TextEditingController();
 
     showDialog(
