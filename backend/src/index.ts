@@ -12,6 +12,7 @@ import { dashboardRouter } from './routes/dashboard';
 import { newsRouter } from './routes/news';
 import { geminiRouter } from './routes/gemini';
 import { chatRouter } from './routes/chat';
+import { profileRouter } from './routes/profile';
 import { validateEnv, checkSupabaseConnectivity } from './config';
 import { healthRouter } from './routes/health';
 import { initNewsWorker } from './workers/newsWorker';
@@ -60,6 +61,7 @@ app.use('/api/dashboard', requireAuth, dashboardRouter);
 app.use('/api/news', requireAuth, newsRouter);
 app.use('/api/ai', requireAuth, geminiRouter);
 app.use('/api/ai', requireAuth, chatRouter);
+app.use('/api/profile', requireAuth, profileRouter);
 
 // Error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {

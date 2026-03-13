@@ -188,6 +188,16 @@ class ApiDataRepository implements DataRepository {
     return data['reply'] ?? '';
   }
 
+  // ─── Cache ───
+  @override
+  Future<void> invalidateCache() async {
+    try {
+      await _postJson('/profile/cache-invalidate', {});
+    } catch (e) {
+      debugPrint('Failed to invalidate cache: $e');
+    }
+  }
+
   // ─── Connection Test ───
 
   /// Tests connectivity to a backend URL by hitting the unauthenticated /health endpoint.

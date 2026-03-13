@@ -23,6 +23,9 @@ abstract class DataRepository {
   Future<List<AiInsight>> getAiInsights(String context, Map<String, dynamic> stats);
   Future<String> getAiSummary(String context, Map<String, dynamic> stats);
   Future<String> sendChatMessage(String message, List<ChatMessage> history, Map<String, dynamic> context);
+
+  // Cache
+  Future<void> invalidateCache();
 }
 
 /// A repository that returns the mock data asynchronously to simulate
@@ -146,5 +149,10 @@ class MockDataRepository implements DataRepository {
   Future<String> sendChatMessage(String message, List<ChatMessage> history, Map<String, dynamic> context) async {
     await _delay();
     return 'Mock AI response';
+  }
+
+  @override
+  Future<void> invalidateCache() async {
+    await _delay();
   }
 }

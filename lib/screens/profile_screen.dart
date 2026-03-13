@@ -836,6 +836,9 @@ class ProfileScreen extends StatelessWidget {
                   await Supabase.instance.client
                       .from('profiles')
                       .upsert(updates);
+                  
+                  await provider.repository.invalidateCache();
+                  
                   if (ctx.mounted) Navigator.pop(ctx);
                   provider.loadAllData();
                 } catch (e) {
