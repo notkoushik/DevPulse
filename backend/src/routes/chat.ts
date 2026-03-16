@@ -34,12 +34,19 @@ chatRouter.post('/chat', async (req, res) => {
       }
     }
 
-    const systemPrompt = `You are DevPulse AI Assistant, a friendly developer coach who helps users understand and improve their coding habits. You have access to the user's real-time stats:
+    const githubUser = context?.github?.username ? `@${context.github.username}` : null;
+    const lcUser = context?.leetcode?.username ? `@${context.leetcode.username}` : null;
+    const userLine = [githubUser && `GitHub: ${githubUser}`, lcUser && `LeetCode: ${lcUser}`]
+      .filter(Boolean).join(', ');
+
+    const systemPrompt = `You are DevPulse AI, a personal developer productivity coach. ${userLine ? `You are talking to the developer whose accounts are: ${userLine}.` : ''}
+You have access to their LIVE stats right now:
 ${statsContext}
 
 Guidelines:
+- Address the user naturally, referencing their actual username when it feels relevant
 - Keep answers concise (under 200 words unless the user asks for detail)
-- Reference the user's actual data when relevant
+- Reference the user's actual numbers when they ask about progress
 - Suggest specific, actionable improvements
 - Be encouraging but realistic
 - If asked about something outside developer productivity, politely redirect`;

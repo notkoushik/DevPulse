@@ -136,7 +136,7 @@ leetcodeRouter.get('/stats', async (req, res) => {
       weeklyProgress: _generateWeeklyProgress(submissions),
     };
 
-    cache.set('leetcode_stats_' + authReq.user?.id, result, 900);
+    cache.set('leetcode_stats_' + authReq.user?.id, result, 300); // 5 min cache
     res.json(result);
   } catch (err: any) {
     console.error('LeetCode API error:', err.response?.data || err.message);

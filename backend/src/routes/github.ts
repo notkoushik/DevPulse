@@ -84,6 +84,10 @@ githubRouter.get('/stats', async (req, res) => {
     const yearAgo = new Date(now);
     yearAgo.setFullYear(yearAgo.getFullYear() - 1);
 
+    // Use IST (UTC+5:30) for 'today' since GitHub contribution calendar dates use local time
+    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
+    const nowIST = new Date(now.getTime() + IST_OFFSET_MS);
+
     // Fetch contributions + repos in parallel
     const [contribRes, reposRes] = await Promise.all([
       axios.post(GITHUB_GRAPHQL, {
@@ -124,8 +128,8 @@ githubRouter.get('/stats', async (req, res) => {
       else break;
     }
 
-    // ─── Today's commits ───
-    const todayStr = now.toISOString().split('T')[0];
+    // ─── Today's commits ─── (use IST date to match GitHub calendar)
+    const todayStr = nowIST.toISOString().split('T')[0];
     const todayEntry = allDays.find((d: any) => d.date === todayStr);
     const todayCommits = todayEntry ? todayEntry.contributionCount : 0;
 
@@ -159,12 +163,13 @@ githubRouter.get('/stats', async (req, res) => {
     });
 
     const result = {
+      username, // include so AI always knows who this is
       user: {
         name: user.name || username,
         username: user.login,
         avatar: user.avatarUrl,
         streak,
-        longestStreak: streak, // GraphQL doesn't expose longest streak natively
+        longestStreak: streak,
         totalCommits: contribs.totalCommitContributions,
         totalRepos: contribRes.data.data.user.repositories.totalCount,
         totalStars,
@@ -187,7 +192,7 @@ githubRouter.get('/stats', async (req, res) => {
       },
     };
 
-    cache.set('github_stats_' + authReq.user?.id, result, 900);
+    cache.set('github_stats_' + authReq.user?.id, result, 300); // 5 min cache
     res.json(result);
   } catch (err: any) {
     console.error('GitHub API error:', err.response?.data || err.message);
