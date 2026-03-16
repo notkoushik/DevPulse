@@ -1,5 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { createClient } from '@supabase/supabase-js';
+import { cache } from '../cache';
 import dotenv from 'dotenv';
 dotenv.config();
 
@@ -17,6 +18,19 @@ export interface AuthRequest extends Request {
     };
 }
 
+/**
+ * Auth cache: stores verified {user, profile} per token for 60 seconds.
+ * This eliminates 2 Supabase API calls per request for active sessions,
+ * reducing free-tier consumption from ~46 req/min to virtually unlimited
+ * for repeat requests within the cache window.
+ */
+const AUTH_CACHE_TTL = 60; // seconds
+
+interface CachedAuth {
+    user: any;
+    profile: any;
+}
+
 export const requireAuth = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
     try {
         const authHeader = req.headers.authorization;
@@ -27,7 +41,17 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
 
         const token = authHeader.split(' ')[1];
 
-        // Verify the JWT with Supabase using getUser for true verification
+        // ── Cache check: skip Supabase calls if token was recently verified ──
+        const cacheKey = `auth_${token.substring(token.length - 16)}`; // Use last 16 chars as key (safe, not the full token)
+        const cached = cache.get<CachedAuth>(cacheKey);
+
+        if (cached) {
+            req.user = cached.user;
+            req.userProfile = cached.profile;
+            return next();
+        }
+
+        // ── Cache miss: verify with Supabase ──
         const { data: { user }, error } = await supabase.auth.getUser(token);
 
         if (error || !user) {
@@ -43,7 +67,6 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
         req.user = user;
 
         // Fetch user profile from public.profiles table
-        // (Assuming a table named profiles exists with these columns)
         const { data: profile, error: profileError } = await supabase
             .from('profiles')
             .select('github_username, leetcode_username, wakatime_api_key')
@@ -54,7 +77,11 @@ export const requireAuth = async (req: AuthRequest, res: Response, next: NextFun
             console.error('Error fetching profile:', profileError);
         }
 
-        req.userProfile = profile || {};
+        const resolvedProfile = profile || {};
+        req.userProfile = resolvedProfile;
+
+        // ── Cache the verified auth result ──
+        cache.set<CachedAuth>(cacheKey, { user, profile: resolvedProfile }, AUTH_CACHE_TTL);
 
         next();
     } catch (err: any) {

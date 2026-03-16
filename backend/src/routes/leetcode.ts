@@ -57,14 +57,13 @@ query getUserContestRanking($username: String!) {
 }
 `;
 
-// ─── /api/leetcode/stats ───
-leetcodeRouter.get('/stats', async (req, res) => {
-  try {
-    const authReq = req as AuthRequest;
-    const cached = cache.get<any>('leetcode_stats_' + authReq.user?.id);
-    if (cached) return res.json(cached);
-
-    const username = authReq.userProfile?.leetcode_username || process.env.LEETCODE_USERNAME || 'koushiknani';
+/**
+ * Core data-fetching logic for LeetCode stats.
+ * Exported so dashboard.ts can call it directly without an HTTP self-call.
+ */
+export async function fetchLeetCodeData(userId: string, username: string): Promise<any> {
+    const cached = cache.get<any>('leetcode_stats_' + userId);
+    if (cached) return cached;
 
     // Fetch all LC data in parallel
     const [profileRes, submissionsRes, contestRes] = await Promise.all([
@@ -136,7 +135,17 @@ leetcodeRouter.get('/stats', async (req, res) => {
       weeklyProgress: _generateWeeklyProgress(submissions),
     };
 
-    cache.set('leetcode_stats_' + authReq.user?.id, result, 300); // 5 min cache
+    cache.set('leetcode_stats_' + userId, result, 300); // 5 min cache
+    return result;
+}
+
+// ─── /api/leetcode/stats ───
+leetcodeRouter.get('/stats', async (req, res) => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.id;
+    const username = authReq.userProfile?.leetcode_username || process.env.LEETCODE_USERNAME || 'koushiknani';
+    const result = await fetchLeetCodeData(userId, username);
     res.json(result);
   } catch (err: any) {
     console.error('LeetCode API error:', err.response?.data || err.message);

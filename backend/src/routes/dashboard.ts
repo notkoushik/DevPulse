@@ -1,41 +1,43 @@
 import { Router } from 'express';
-import axios from 'axios';
 import { cache } from '../cache';
 import { AuthRequest } from '../middleware/auth';
+import { fetchGitHubData } from './github';
+import { fetchLeetCodeData } from './leetcode';
+import { fetchWakaTimeData } from './wakatime';
 
 export const dashboardRouter = Router();
 
 /**
  * /api/dashboard — Aggregated endpoint for the home screen.
- * Fetches from the other internal routes and combines everything
- * the Dashboard screen needs in a single response.
+ * Calls the data-fetching functions directly (not via HTTP self-calls)
+ * to avoid wasting rate limit slots and adding unnecessary latency.
  */
 dashboardRouter.get('/', async (req, res) => {
     try {
         const authReq = req as AuthRequest;
-        const cached = cache.get<any>('dashboard_' + authReq.user?.id);
+        const userId = authReq.user?.id;
+        const cached = cache.get<any>('dashboard_' + userId);
         if (cached) return res.json(cached);
 
-        const baseUrl = `${req.protocol}://${req.get('host')}`;
+        const githubUsername = authReq.userProfile?.github_username || process.env.GITHUB_USERNAME || 'notkoushik';
+        const leetcodeUsername = authReq.userProfile?.leetcode_username || process.env.LEETCODE_USERNAME || 'koushiknani';
+        const wakatimeKey = authReq.userProfile?.wakatime_api_key || process.env.WAKATIME_API_KEY || '';
 
-        // Forward Authorization header
-        const headers = { Authorization: req.headers.authorization };
-
-        // Fetch all data in parallel from other routes
-        const [githubRes, leetcodeRes, wakatimeRes] = await Promise.all([
-            axios.get(`${baseUrl}/api/github/stats`, { headers }).catch(() => ({ data: null })),
-            axios.get(`${baseUrl}/api/leetcode/stats`, { headers }).catch(() => ({ data: null })),
-            axios.get(`${baseUrl}/api/wakatime/stats`, { headers }).catch(() => ({ data: null })),
+        // Fetch all data in parallel via direct function calls (no HTTP overhead)
+        const [githubData, leetcodeData, wakatimeData] = await Promise.all([
+            fetchGitHubData(userId, githubUsername).catch(() => null),
+            fetchLeetCodeData(userId, leetcodeUsername).catch(() => null),
+            fetchWakaTimeData(userId, wakatimeKey).catch(() => null),
         ]);
 
         const result = {
-            github: githubRes.data,
-            leetcode: leetcodeRes.data,
-            wakatime: wakatimeRes.data,
+            github: githubData,
+            leetcode: leetcodeData,
+            wakatime: wakatimeData,
             timestamp: new Date().toISOString(),
         };
 
-        cache.set('dashboard_' + authReq.user?.id, result, 600); // 10 min cache
+        cache.set('dashboard_' + userId, result, 600); // 10 min cache
         res.json(result);
     } catch (err: any) {
         console.error('Dashboard aggregation error:', err.message);

@@ -16,88 +16,102 @@ function getHeaders(authReq: AuthRequest): Record<string, string> {
     };
 }
 
+/**
+ * Core data-fetching logic for WakaTime stats.
+ * Exported so dashboard.ts can call it directly without an HTTP self-call.
+ */
+export async function fetchWakaTimeData(userId: string, wakatimeApiKey: string): Promise<any> {
+    const cached = cache.get<any>('wakatime_stats_' + userId);
+    if (cached) return cached;
+
+    const encoded = Buffer.from(wakatimeApiKey).toString('base64');
+    const headers = { Authorization: `Basic ${encoded}` };
+
+    // Fetch today's summary + last 7 days stats in parallel
+    const [todayRes, weekRes] = await Promise.all([
+        axios.get(`${WAKA_BASE}/users/current/status_bar/today`, {
+            headers,
+        }).catch(() => null),
+
+        axios.get(`${WAKA_BASE}/users/current/stats/last_7_days`, {
+            headers,
+        }).catch(() => null),
+    ]);
+
+    // ─── Parse today's data ───
+    const todayData = todayRes?.data?.data;
+    const todayTime = todayData?.grand_total?.text ?? '0 hrs 0 mins';
+    const todaySeconds = todayData?.grand_total?.total_seconds ?? 0;
+
+    // ─── Parse weekly data ───
+    const weekData = weekRes?.data?.data;
+    const weeklyTotalText = weekData?.human_readable_total_including_other_language ?? '0 hrs';
+    const weeklyTotalSeconds = weekData?.total_seconds_including_other_language ?? 0;
+    const dailyAvgText = weekData?.human_readable_daily_average_including_other_language ?? '0 hrs';
+
+    // Languages breakdown
+    const languages = (weekData?.languages ?? []).slice(0, 8).map((l: any) => ({
+        name: l.name,
+        percent: l.percent,
+        totalSeconds: l.total_seconds,
+        text: l.text,
+        color: _getLanguageColor(l.name),
+    }));
+
+    // Editors breakdown
+    const editors = (weekData?.editors ?? []).slice(0, 5).map((e: any) => ({
+        name: e.name,
+        percent: e.percent,
+        text: e.text,
+    }));
+
+    // Projects breakdown
+    const projects = (weekData?.projects ?? []).slice(0, 8).map((p: any) => ({
+        name: p.name,
+        percent: p.percent,
+        totalSeconds: p.total_seconds,
+        text: p.text,
+    }));
+
+    // Daily breakdown (last 7 days)
+    const dailyBreakdown = (weekData?.days ?? []).map((d: any) => ({
+        date: d.date,
+        totalSeconds: d.total,
+        text: _formatSeconds(d.total),
+    }));
+
+    // If days aren't available from stats endpoint, generate from range
+    const dailyCoding = dailyBreakdown.length > 0
+        ? dailyBreakdown
+        : _generateDailyFromWeek(weeklyTotalSeconds);
+
+    const result = {
+        today: {
+            text: todayTime,
+            totalSeconds: todaySeconds,
+        },
+        week: {
+            text: weeklyTotalText,
+            totalSeconds: weeklyTotalSeconds,
+            dailyAverage: dailyAvgText,
+        },
+        languages,
+        editors,
+        projects,
+        dailyCoding,
+    };
+
+    cache.set('wakatime_stats_' + userId, result, 600); // 10 min cache
+    return result;
+}
+
 // ─── /api/wakatime/stats ───
 wakatimeRouter.get('/stats', async (req, res) => {
     try {
         const authReq = req as AuthRequest;
-        const cached = cache.get<any>('wakatime_stats_' + authReq.user?.id);
-        if (cached) return res.json(cached);
-
-        // Fetch today's summary + last 7 days stats in parallel
-        const [todayRes, weekRes] = await Promise.all([
-            axios.get(`${WAKA_BASE}/users/current/status_bar/today`, {
-                headers: getHeaders(authReq),
-            }).catch(() => null),
-
-            axios.get(`${WAKA_BASE}/users/current/stats/last_7_days`, {
-                headers: getHeaders(authReq),
-            }).catch(() => null),
-        ]);
-
-        // ─── Parse today's data ───
-        const todayData = todayRes?.data?.data;
-        const todayTime = todayData?.grand_total?.text ?? '0 hrs 0 mins';
-        const todaySeconds = todayData?.grand_total?.total_seconds ?? 0;
-
-        // ─── Parse weekly data ───
-        const weekData = weekRes?.data?.data;
-        const weeklyTotalText = weekData?.human_readable_total_including_other_language ?? '0 hrs';
-        const weeklyTotalSeconds = weekData?.total_seconds_including_other_language ?? 0;
-        const dailyAvgText = weekData?.human_readable_daily_average_including_other_language ?? '0 hrs';
-
-        // Languages breakdown
-        const languages = (weekData?.languages ?? []).slice(0, 8).map((l: any) => ({
-            name: l.name,
-            percent: l.percent,
-            totalSeconds: l.total_seconds,
-            text: l.text,
-            color: _getLanguageColor(l.name),
-        }));
-
-        // Editors breakdown
-        const editors = (weekData?.editors ?? []).slice(0, 5).map((e: any) => ({
-            name: e.name,
-            percent: e.percent,
-            text: e.text,
-        }));
-
-        // Projects breakdown
-        const projects = (weekData?.projects ?? []).slice(0, 8).map((p: any) => ({
-            name: p.name,
-            percent: p.percent,
-            totalSeconds: p.total_seconds,
-            text: p.text,
-        }));
-
-        // Daily breakdown (last 7 days)
-        const dailyBreakdown = (weekData?.days ?? []).map((d: any) => ({
-            date: d.date,
-            totalSeconds: d.total,
-            text: _formatSeconds(d.total),
-        }));
-
-        // If days aren't available from stats endpoint, generate from range
-        const dailyCoding = dailyBreakdown.length > 0
-            ? dailyBreakdown
-            : _generateDailyFromWeek(weeklyTotalSeconds);
-
-        const result = {
-            today: {
-                text: todayTime,
-                totalSeconds: todaySeconds,
-            },
-            week: {
-                text: weeklyTotalText,
-                totalSeconds: weeklyTotalSeconds,
-                dailyAverage: dailyAvgText,
-            },
-            languages,
-            editors,
-            projects,
-            dailyCoding,
-        };
-
-        cache.set('wakatime_stats_' + authReq.user?.id, result, 600); // 10 min cache
+        const userId = authReq.user?.id;
+        const wakatimeApiKey = authReq.userProfile?.wakatime_api_key || process.env.WAKATIME_API_KEY || '';
+        const result = await fetchWakaTimeData(userId, wakatimeApiKey);
         res.json(result);
     } catch (err: any) {
         console.error('WakaTime API error:', err.response?.data || err.message);

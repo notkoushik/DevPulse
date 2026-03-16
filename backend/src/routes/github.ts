@@ -72,14 +72,14 @@ function getHeaders(): Record<string, string> {
   };
 }
 
-// ─── /api/github/stats ───
-githubRouter.get('/stats', async (req, res) => {
-  try {
-    const authReq = req as AuthRequest;
-    const cached = cache.get<any>('github_stats_' + authReq.user?.id);
-    if (cached) return res.json(cached);
+/**
+ * Core data-fetching logic for GitHub stats.
+ * Exported so dashboard.ts can call it directly without an HTTP self-call.
+ */
+export async function fetchGitHubData(userId: string, username: string): Promise<any> {
+    const cached = cache.get<any>('github_stats_' + userId);
+    if (cached) return cached;
 
-    const username = authReq.userProfile?.github_username || process.env.GITHUB_USERNAME || 'notkoushik';
     const now = new Date();
     const yearAgo = new Date(now);
     yearAgo.setFullYear(yearAgo.getFullYear() - 1);
@@ -192,7 +192,17 @@ githubRouter.get('/stats', async (req, res) => {
       },
     };
 
-    cache.set('github_stats_' + authReq.user?.id, result, 300); // 5 min cache
+    cache.set('github_stats_' + userId, result, 300); // 5 min cache
+    return result;
+}
+
+// ─── /api/github/stats ───
+githubRouter.get('/stats', async (req, res) => {
+  try {
+    const authReq = req as AuthRequest;
+    const userId = authReq.user?.id;
+    const username = authReq.userProfile?.github_username || process.env.GITHUB_USERNAME || 'notkoushik';
+    const result = await fetchGitHubData(userId, username);
     res.json(result);
   } catch (err: any) {
     console.error('GitHub API error:', err.response?.data || err.message);
