@@ -17,6 +17,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   bool _isLoading = false;
   bool _isSignUp = false;
 
@@ -27,6 +28,16 @@ class _LoginScreenState extends State<LoginScreen> {
       final password = _passwordController.text.trim();
 
       if (_isSignUp) {
+        final confirmPassword = _confirmPasswordController.text.trim();
+        if (password != confirmPassword) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Passwords do not match.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+          return;
+        }
         await Supabase.instance.client.auth.signUp(
           email: email,
           password: password,
@@ -236,6 +247,27 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                     ).animate().fadeIn(delay: 300.ms).slideY(begin: 0.2),
+
+                    // Confirm Password Field (signup only)
+                    if (_isSignUp) ...[
+                      const SizedBox(height: 16),
+                      TextField(
+                        controller: _confirmPasswordController,
+                        obscureText: true,
+                        style: TextStyle(color: theme.text),
+                        decoration: InputDecoration(
+                          labelText: 'Confirm Password',
+                          labelStyle: TextStyle(color: theme.textMuted),
+                          prefixIcon: Icon(Icons.lock_outline, color: theme.textMuted),
+                          filled: true,
+                          fillColor: theme.fill2,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(16),
+                            borderSide: BorderSide.none,
+                          ),
+                        ),
+                      ).animate().fadeIn(delay: 350.ms).slideY(begin: 0.2),
+                    ],
                     const SizedBox(height: 32),
 
                     // Submit Button
@@ -336,6 +368,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () {
                         setState(() {
                           _isSignUp = !_isSignUp;
+                          _confirmPasswordController.clear();
                         });
                       },
                       child: Text(
@@ -359,6 +392,7 @@ class _LoginScreenState extends State<LoginScreen> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 }

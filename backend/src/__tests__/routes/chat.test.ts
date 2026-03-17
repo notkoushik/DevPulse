@@ -35,20 +35,13 @@ describe('chatRouter', () => {
         expect(res.body.error).toBe('Missing message');
     });
 
-    it('should build context correctly from cache and call generateChat', async () => {
+    it('should build context correctly from context body and call generateChat', async () => {
         (aiTools.generateChat as jest.Mock).mockResolvedValue('Hello from AI');
 
-        // Pre-warm caches to verify context building
-        cache.set('dashboard_user123', {
-            github: { user: { totalCommits: 50 }, stats: { recentRepos: [] } },
-            leetcode: { totalSolved: 10, easy: { solved: 5 }, medium: { solved: 4 }, hard: { solved: 1 } },
-        });
-
-        // Mock a user profile fetch (we bypassed auth so just pretend req.userProfile is there)
-        app.use((req: any, res, next) => {
-            req.userProfile = { goal: 'Get a FAANG job' };
-            next();
-        });
+        const context = {
+            github: { todayCommits: 50, streak: 7, totalRepos: 20, totalStars: 100 },
+            leetcode: { totalSolved: 10, totalQuestions: 2500, ranking: 50000, acceptanceRate: 60 },
+        };
 
         const history = [
             { role: 'user', content: 'Hi' },
@@ -59,23 +52,30 @@ describe('chatRouter', () => {
             .post('/chat')
             .send({
                 message: 'How is my progress?',
-                history
+                history,
+                context,
             });
 
         expect(res.status).toBe(200);
         expect(res.body.reply).toBe('Hello from AI');
 
-        // Verify that generateChat was called with the context string
         expect(aiTools.generateChat).toHaveBeenCalledTimes(1);
         const callArgs = (aiTools.generateChat as jest.Mock).mock.calls[0];
-        const systemPrompt = callArgs[0];
-        
-        expect(systemPrompt).toContain('You are an AI assistant');
-        expect(systemPrompt).toContain('totalCommits: 50');
-        expect(systemPrompt).toContain('totalSolved: 10');
 
-        // Verify history was passed
-        expect(callArgs[2]).toEqual(history);
+        // generateChat receives a single ChatMessage[] array
+        const messages: Array<{ role: string; content: string }> = callArgs[0];
+        expect(Array.isArray(messages)).toBe(true);
+
+        // First element is the system prompt message
+        const systemMessage = messages.find((m) => m.role === 'system');
+        expect(systemMessage).toBeDefined();
+        expect(systemMessage!.content).toContain('You are DevPulse AI');
+        expect(systemMessage!.content).toContain('50 commits today');
+        expect(systemMessage!.content).toContain('10/2500 solved');
+
+        // History turns are embedded inside the messages array
+        const hiTurn = messages.find((m) => m.role === 'user' && m.content === 'Hi');
+        expect(hiTurn).toBeDefined();
     });
 
     it('should handle AI model failures gracefully', async () => {

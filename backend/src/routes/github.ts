@@ -122,8 +122,13 @@ export async function fetchGitHubData(userId: string, username: string): Promise
     };
 
     // ─── Compute streak ───
+    // If today has no contributions yet (day not over), start from yesterday
     let streak = 0;
-    for (let i = allDays.length - 1; i >= 0; i--) {
+    let startIdx = allDays.length - 1;
+    if (startIdx >= 0 && allDays[startIdx].contributionCount === 0) {
+      startIdx--;
+    }
+    for (let i = startIdx; i >= 0; i--) {
       if (allDays[i].contributionCount > 0) streak++;
       else break;
     }
