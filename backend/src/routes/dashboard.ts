@@ -19,13 +19,23 @@ dashboardRouter.get('/', async (req, res) => {
         const cached = cache.get<any>('dashboard_' + userId);
         if (cached) return res.json(cached);
 
-        const githubUsername = authReq.userProfile?.github_username || process.env.GITHUB_USERNAME || 'notkoushik';
-        const leetcodeUsername = authReq.userProfile?.leetcode_username || process.env.LEETCODE_USERNAME || 'koushiknani';
+        const githubUsername = authReq.userProfile?.github_username || process.env.GITHUB_USERNAME;
+        const leetcodeUsername = authReq.userProfile?.leetcode_username || process.env.LEETCODE_USERNAME;
         const wakatimeKey = authReq.userProfile?.wakatime_api_key || process.env.WAKATIME_API_KEY || '';
+        // Get user's timezone from Intl API
+        const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+        // Validate required usernames
+        if (!githubUsername || !leetcodeUsername) {
+            return res.status(400).json({
+                error: 'Missing required configuration',
+                message: 'GitHub and LeetCode usernames must be configured',
+            });
+        }
 
         // Fetch all data in parallel via direct function calls (no HTTP overhead)
         const [githubData, leetcodeData, wakatimeData] = await Promise.all([
-            fetchGitHubData(userId, githubUsername).catch(() => null),
+            fetchGitHubData(userId, githubUsername, timezone).catch(() => null),
             fetchLeetCodeData(userId, leetcodeUsername).catch(() => null),
             fetchWakaTimeData(userId, wakatimeKey).catch(() => null),
         ]);
@@ -43,7 +53,7 @@ dashboardRouter.get('/', async (req, res) => {
         console.error('Dashboard aggregation error:', err.message);
         res.status(500).json({
             error: 'Failed to aggregate dashboard data',
-            details: err.message,
+            message: err.message,
         });
     }
 });

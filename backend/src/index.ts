@@ -29,8 +29,18 @@ app.use(helmet());
 // Logging
 app.use(morgan('combined'));
 
-// Cross-Origin Resource Sharing
-app.use(cors());
+// Cross-Origin Resource Sharing - whitelist specific origins
+const allowedOrigins = (process.env.CORS_ALLOWED_ORIGINS || 'http://localhost:3000').split(',').map(o => o.trim());
+app.use(cors({
+    origin: (origin, callback) => {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('CORS not allowed'));
+        }
+    },
+    credentials: true,
+}));
 
 app.use(express.json());
 
@@ -66,7 +76,10 @@ app.use('/api/profile', requireAuth, profileRouter);
 // Error handler
 app.use((err: Error, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
     console.error('Server error:', err.message);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({
+        error: 'Internal server error',
+        message: err.message,
+    });
 });
 
 app.listen(PORT, async () => {

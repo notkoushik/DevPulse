@@ -52,6 +52,9 @@ describe('leetcode.ts - fetchLeetCodeData', () => {
     mockedAxios.post.mockResolvedValueOnce({ data: { data: mockProfile } });
     mockedAxios.post.mockResolvedValueOnce({ data: { data: mockSubmissions } });
     mockedAxios.post.mockResolvedValueOnce({ data: { data: mockContest } });
+    // Mock the difficulty fetches for 2 submissions
+    mockedAxios.post.mockResolvedValueOnce({ data: { data: { question: { difficulty: 'Easy' } } } });
+    mockedAxios.post.mockResolvedValueOnce({ data: { data: { question: { difficulty: 'Medium' } } } });
 
     const result = await fetchLeetCodeData('user123', 'lcuser');
 
@@ -66,9 +69,12 @@ describe('leetcode.ts - fetchLeetCodeData', () => {
     expect(result.badges).toBe(1);
     expect(result.recentSubmissions).toHaveLength(2);
     expect(result.recentSubmissions[0].title).toBe('Two Sum');
+    expect(result.recentSubmissions[0].difficulty).toBe('Easy');
+    expect(result.recentSubmissions[1].difficulty).toBe('Medium');
     expect(result.weeklyProgress).toHaveLength(7); // Array of 7 days
 
-    expect(mockedAxios.post).toHaveBeenCalledTimes(3);
+    // 3 initial calls (profile, submissions, contest) + 2 difficulty calls
+    expect(mockedAxios.post).toHaveBeenCalledTimes(5);
   });
 
   it('should return cached data if available', async () => {

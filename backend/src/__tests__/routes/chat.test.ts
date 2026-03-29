@@ -32,7 +32,8 @@ describe('chatRouter', () => {
             .send({}); // missing message
 
         expect(res.status).toBe(400);
-        expect(res.body.error).toBe('Missing message');
+        expect(res.body.error).toBe('Invalid request');
+        expect(res.body.message).toBe('message field is required');
     });
 
     it('should build context correctly from context body and call generateChat', async () => {

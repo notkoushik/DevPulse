@@ -2,6 +2,7 @@ import { Router } from 'express';
 import axios from 'axios';
 import { cache } from '../cache';
 import { supabase } from '../middleware/auth';
+import { timeAgoFromUnix, timeAgoFromString } from '../utils/timeAgo';
 
 export const newsRouter = Router();
 
@@ -31,17 +32,6 @@ interface TrendingRepo {
 }
 
 // ─── Helpers ───
-
-function timeAgo(timestamp: number): string {
-  const seconds = Math.floor((Date.now() / 1000) - timestamp);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-}
 
 // ─── HackerNews ───
 
@@ -73,7 +63,7 @@ async function fetchHackerNews(): Promise<NewsItem[]> {
       author: s.by || null,
       points: s.score || 0,
       comments: s.descendants || 0,
-      timeAgo: timeAgo(s.time),
+      timeAgo: timeAgoFromUnix(s.time),
       tags: [],
     }));
 
@@ -100,23 +90,12 @@ async function fetchDevTo(): Promise<NewsItem[]> {
     author: a.user?.name || a.user?.username || null,
     points: a.positive_reactions_count || 0,
     comments: a.comments_count || 0,
-    timeAgo: _devtoTimeAgo(a.published_at),
+    timeAgo: timeAgoFromString(a.published_at),
     tags: a.tag_list || [],
   }));
 
   cache.set('news_devto', items, 300); // 5 min cache for fresher content
   return items;
-}
-
-function _devtoTimeAgo(dateStr: string): string {
-  const seconds = Math.floor((Date.now() - new Date(dateStr).getTime()) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
 }
 
 // ─── GitHub Trending ───
@@ -246,7 +225,7 @@ async function fetchReddit(): Promise<NewsItem[]> {
             author: d.author || null,
             points: d.score || 0,
             comments: d.num_comments || 0,
-            timeAgo: _redditTimeAgo(d.created_utc),
+            timeAgo: timeAgoFromUnix(d.created_utc),
             tags: [sub],
           };
         });
@@ -258,17 +237,6 @@ async function fetchReddit(): Promise<NewsItem[]> {
 
   cache.set('news_reddit', allItems, 300); // 5 min cache
   return allItems;
-}
-
-function _redditTimeAgo(utcTimestamp: number): string {
-  const seconds = Math.floor(Date.now() / 1000 - utcTimestamp);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
 }
 
 // ─── Routes ───
@@ -290,14 +258,26 @@ newsRouter.get('/ai-feed', async (_req, res) => {
     });
   } catch (err: any) {
     console.error('AI News feed error:', err.message);
-    res.status(500).json({ error: 'Failed to fetch AI news feed' });
+    res.status(500).json({
+      error: 'Failed to fetch AI news feed',
+      message: err.message,
+    });
   }
 });
 
-// GET /api/news/feed?source=all|hackernews|devto
+// GET /api/news/feed?source=all|hackernews|devto|reddit
 newsRouter.get('/feed', async (req, res) => {
   try {
+    const validSources = ['all', 'hackernews', 'devto', 'reddit'];
     const source = (req.query.source as string) || 'all';
+
+    // Input validation - prevent injection attacks
+    if (!validSources.includes(source)) {
+      return res.status(400).json({
+        error: 'Invalid source parameter',
+        message: `source must be one of: ${validSources.join(', ')}`,
+      });
+    }
 
     let items: NewsItem[] = [];
 
@@ -339,7 +319,10 @@ newsRouter.get('/feed', async (req, res) => {
     });
   } catch (err: any) {
     console.error('News feed error:', err.message);
-    res.status(500).json({ error: 'Failed to fetch news feed' });
+    res.status(500).json({
+      error: 'Failed to fetch news feed',
+      message: err.message,
+    });
   }
 });
 
@@ -350,6 +333,9 @@ newsRouter.get('/trending', async (_req, res) => {
     res.json({ repos });
   } catch (err: any) {
     console.error('Trending fetch error:', err.message);
-    res.status(500).json({ error: 'Failed to fetch trending repos' });
+    res.status(500).json({
+      error: 'Failed to fetch trending repos',
+      message: err.message,
+    });
   }
 });

@@ -10,7 +10,10 @@ chatRouter.post('/chat', async (req, res) => {
     const { message, history, context } = req.body;
 
     if (!message) {
-      return res.status(400).json({ error: 'Missing message' });
+      return res.status(400).json({
+        error: 'Invalid request',
+        message: 'message field is required',
+      });
     }
 
     // Build system context from user stats
@@ -67,6 +70,9 @@ Guidelines:
     res.json({ reply });
   } catch (err: any) {
     console.error('AI chat error:', err.message);
-    res.status(500).json({ error: 'AI chat unavailable' });
+    res.status(500).json({
+      error: 'AI chat unavailable',
+      message: err.message,
+    });
   }
 });

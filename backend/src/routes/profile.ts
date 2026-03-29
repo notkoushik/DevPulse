@@ -8,9 +8,12 @@ profileRouter.post('/cache-invalidate', async (req, res) => {
     try {
         const authReq = req as AuthRequest;
         const userId = authReq.user?.id;
-        
+
         if (!userId) {
-             res.status(401).json({ error: 'Unauthorized: Missing user ID' });
+             res.status(401).json({
+                error: 'Unauthorized',
+                message: 'Missing user ID',
+            });
              return;
         }
 
@@ -22,10 +25,10 @@ profileRouter.post('/cache-invalidate', async (req, res) => {
 
         res.json({ message: 'Cache invalidated successfully' });
     } catch (err: any) {
-        console.error('Cache invalidation error?', err.message);
+        console.error('Cache invalidation error:', err.message);
         res.status(500).json({
             error: 'Failed to invalidate cache',
-            details: err.message,
+            message: err.message,
         });
     }
 });

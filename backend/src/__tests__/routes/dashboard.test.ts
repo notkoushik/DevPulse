@@ -47,7 +47,7 @@ describe('dashboardRouter - Integration', () => {
         expect(res.body.wakatime).toEqual({ today: 'waka_ok' });
         expect(res.body.timestamp).toBeDefined();
 
-        expect(mockFetchGitHub).toHaveBeenCalledWith('user123', 'test_gh');
+        expect(mockFetchGitHub).toHaveBeenCalledWith('user123', 'test_gh', expect.any(String));
         expect(mockFetchLeetCode).toHaveBeenCalledWith('user123', 'test_lc');
         expect(mockFetchWakaTime).toHaveBeenCalledWith('user123', 'test_wk');
 

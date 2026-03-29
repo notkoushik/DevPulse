@@ -2,6 +2,7 @@ import { Router } from 'express';
 import axios from 'axios';
 import { cache } from '../cache';
 import { AuthRequest } from '../middleware/auth';
+import { timeAgo } from '../utils/timeAgo';
 
 export const githubRouter = Router();
 
@@ -76,7 +77,7 @@ function getHeaders(): Record<string, string> {
  * Core data-fetching logic for GitHub stats.
  * Exported so dashboard.ts can call it directly without an HTTP self-call.
  */
-export async function fetchGitHubData(userId: string, username: string): Promise<any> {
+export async function fetchGitHubData(userId: string, username: string, timezone: string = 'UTC'): Promise<any> {
     const cached = cache.get<any>('github_stats_' + userId);
     if (cached) return cached;
 
@@ -84,9 +85,17 @@ export async function fetchGitHubData(userId: string, username: string): Promise
     const yearAgo = new Date(now);
     yearAgo.setFullYear(yearAgo.getFullYear() - 1);
 
-    // Use IST (UTC+5:30) for 'today' since GitHub contribution calendar dates use local time
-    const IST_OFFSET_MS = 5.5 * 60 * 60 * 1000;
-    const nowIST = new Date(now.getTime() + IST_OFFSET_MS);
+    // Convert to user's timezone for 'today' calculation
+    // GitHub contribution calendar dates use the user's local timezone
+    const formatter = new Intl.DateTimeFormat('en-US', {
+        timeZone: timezone,
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+    });
+
+    const parts = formatter.formatToParts(now);
+    const todayStr = `${parts.find(p => p.type === 'year')?.value}-${parts.find(p => p.type === 'month')?.value}-${parts.find(p => p.type === 'day')?.value}`;
 
     // Fetch contributions + repos in parallel
     const [contribRes, reposRes] = await Promise.all([
@@ -133,8 +142,7 @@ export async function fetchGitHubData(userId: string, username: string): Promise
       else break;
     }
 
-    // ─── Today's commits ─── (use IST date to match GitHub calendar)
-    const todayStr = nowIST.toISOString().split('T')[0];
+    // ─── Today's commits ─── (use user's timezone to match GitHub calendar)
     const todayEntry = allDays.find((d: any) => d.date === todayStr);
     const todayCommits = todayEntry ? todayEntry.contributionCount : 0;
 
@@ -163,7 +171,7 @@ export async function fetchGitHubData(userId: string, username: string): Promise
         languageColor: lang?.color ?? '#888888',
         stars: r.stargazerCount,
         commits: r.defaultBranchRef?.target?.history?.totalCount ?? 0,
-        lastActive: _timeAgo(new Date(r.updatedAt)),
+        lastActive: timeAgo(new Date(r.updatedAt)),
       };
     });
 
@@ -206,27 +214,24 @@ githubRouter.get('/stats', async (req, res) => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user?.id;
-    const username = authReq.userProfile?.github_username || process.env.GITHUB_USERNAME || 'notkoushik';
-    const result = await fetchGitHubData(userId, username);
+    const username = authReq.userProfile?.github_username || process.env.GITHUB_USERNAME;
+    // Get user's timezone from Intl API (browser/OS timezone detected server-side)
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone || 'UTC';
+
+    if (!username) {
+      return res.status(400).json({
+        error: 'GitHub username not configured',
+        message: 'Please set GITHUB_USERNAME in environment variables or configure in user profile',
+      });
+    }
+
+    const result = await fetchGitHubData(userId, username, timezone);
     res.json(result);
   } catch (err: any) {
     console.error('GitHub API error:', err.response?.data || err.message);
     res.status(500).json({
       error: 'Failed to fetch GitHub data',
-      details: err.response?.data?.message || err.message,
+      message: err.response?.data?.message || err.message,
     });
   }
 });
-
-function _timeAgo(date: Date): string {
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  const weeks = Math.floor(days / 7);
-  return `${weeks}w ago`;
-}

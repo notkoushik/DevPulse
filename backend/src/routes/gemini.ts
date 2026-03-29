@@ -13,7 +13,10 @@ geminiRouter.post('/insights', async (req, res) => {
     const { context, stats } = req.body;
 
     if (!context || !stats) {
-      return res.status(400).json({ error: 'Missing context or stats' });
+      return res.status(400).json({
+        error: 'Invalid request',
+        message: 'context and stats fields are required',
+      });
     }
 
     const cacheKey = `ai_insights_${userId}_${context}`;
@@ -47,7 +50,10 @@ ${JSON.stringify(stats)}`;
     res.json(parsed);
   } catch (err: any) {
     console.error('Gemini insights error:', err.message);
-    res.status(500).json({ error: 'AI insights unavailable' });
+    res.status(500).json({
+      error: 'AI insights unavailable',
+      message: err.message,
+    });
   }
 });
 
@@ -59,7 +65,10 @@ geminiRouter.post('/summary', async (req, res) => {
     const { context, stats } = req.body;
 
     if (!context || !stats) {
-      return res.status(400).json({ error: 'Missing context or stats' });
+      return res.status(400).json({
+        error: 'Invalid request',
+        message: 'context and stats fields are required',
+      });
     }
 
     const cacheKey = `ai_summary_${userId}_${context}`;
@@ -87,7 +96,10 @@ ${JSON.stringify(stats)}`;
     res.json(parsed);
   } catch (err: any) {
     console.error('Gemini summary error:', err.message);
-    res.status(500).json({ error: 'AI summary unavailable' });
+    res.status(500).json({
+      error: 'AI summary unavailable',
+      message: err.message,
+    });
   }
 });
 
@@ -123,6 +135,9 @@ ${JSON.stringify(stats)}`;
     res.json(parsed);
   } catch (err: any) {
     console.error('Gemini recommendations error:', err.message);
-    res.status(500).json({ error: 'AI recommendations unavailable' });
+    res.status(500).json({
+      error: 'AI recommendations unavailable',
+      message: err.message,
+    });
   }
 });

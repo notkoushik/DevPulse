@@ -2,6 +2,7 @@ import { Router } from 'express';
 import axios from 'axios';
 import { cache } from '../cache';
 import { AuthRequest } from '../middleware/auth';
+import { timeAgoFromUnix } from '../utils/timeAgo';
 
 export const leetcodeRouter = Router();
 
@@ -53,6 +54,14 @@ query getUserContestRanking($username: String!) {
     attendedContestsCount
     rating
     globalRanking
+  }
+}
+`;
+
+const PROBLEM_QUERY = `
+query getProblem($titleSlug: String!) {
+  question(titleSlug: $titleSlug) {
+    difficulty
   }
 }
 `;
@@ -112,14 +121,14 @@ export async function fetchLeetCodeData(userId: string, username: string): Promi
     const totalQuestions = getTotal('All');
 
     // Parse recent submissions
-    const recentSubmissions = submissions.map((s: any, i: number) => ({
+    const recentSubmissions = await Promise.all(submissions.map(async (s: any, i: number) => ({
       id: parseInt(s.id) || i,
       title: s.title,
-      difficulty: _guessDifficulty(s.titleSlug), // LC doesn't return difficulty in submissions
+      difficulty: await fetchProblemDifficulty(s.titleSlug),
       status: s.statusDisplay,
-      time: _timeAgo(new Date(parseInt(s.timestamp) * 1000)),
+      time: timeAgoFromUnix(parseInt(s.timestamp)),
       runtime: s.lang,
-    }));
+    })));
 
     const result = {
       totalSolved,
@@ -144,21 +153,60 @@ leetcodeRouter.get('/stats', async (req, res) => {
   try {
     const authReq = req as AuthRequest;
     const userId = authReq.user?.id;
-    const username = authReq.userProfile?.leetcode_username || process.env.LEETCODE_USERNAME || 'koushiknani';
+    const username = authReq.userProfile?.leetcode_username || process.env.LEETCODE_USERNAME;
+
+    if (!username) {
+      return res.status(400).json({
+        error: 'LeetCode username not configured',
+        message: 'Please set LEETCODE_USERNAME in environment variables or configure in user profile',
+      });
+    }
+
     const result = await fetchLeetCodeData(userId, username);
     res.json(result);
   } catch (err: any) {
     console.error('LeetCode API error:', err.response?.data || err.message);
     res.status(500).json({
       error: 'Failed to fetch LeetCode data',
-      details: err.message,
+      message: err.response?.data?.message || err.message,
     });
   }
 });
 
-// LeetCode submissions don't include difficulty, so we default to "Medium"
-function _guessDifficulty(_slug: string): string {
-  return 'Medium';
+// LeetCode difficulty cache for submissions (stores titleSlug -> difficulty)
+const difficultyCache = new Map<string, Promise<string>>();
+
+// Fetch actual difficulty for a problem using its slug
+async function fetchProblemDifficulty(titleSlug: string): Promise<string> {
+    // Check if we're already fetching this or have it cached
+    if (difficultyCache.has(titleSlug)) {
+        return difficultyCache.get(titleSlug)!;
+    }
+
+    const difficultyPromise = (async () => {
+        try {
+            const response = await axios.post(LC_GRAPHQL, {
+                query: PROBLEM_QUERY,
+                variables: { titleSlug },
+            }, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Referer': 'https://leetcode.com',
+                },
+            });
+
+            const difficulty = response.data.data?.question?.difficulty || 'Medium';
+            // Keep in cache for 24 hours
+            setTimeout(() => difficultyCache.delete(titleSlug), 24 * 60 * 60 * 1000);
+            return difficulty;
+        } catch (err) {
+            console.warn(`Failed to fetch difficulty for ${titleSlug}, defaulting to Medium`);
+            return 'Medium';
+        }
+    })();
+
+    difficultyCache.set(titleSlug, difficultyPromise);
+    return difficultyPromise;
 }
 
 // Generate a mock weekly progress from submission timestamps
@@ -174,16 +222,4 @@ function _generateWeeklyProgress(submissions: any[]): Array<{ day: string; solve
   }
 
   return days.map((day) => ({ day, solved: counts[day] }));
-}
-
-function _timeAgo(date: Date): string {
-  const seconds = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (seconds < 60) return 'just now';
-  const minutes = Math.floor(seconds / 60);
-  if (minutes < 60) return `${minutes}m ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  if (days < 7) return `${days}d ago`;
-  return `${Math.floor(days / 7)}w ago`;
 }

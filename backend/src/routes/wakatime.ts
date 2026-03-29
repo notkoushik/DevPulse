@@ -111,13 +111,21 @@ wakatimeRouter.get('/stats', async (req, res) => {
         const authReq = req as AuthRequest;
         const userId = authReq.user?.id;
         const wakatimeApiKey = authReq.userProfile?.wakatime_api_key || process.env.WAKATIME_API_KEY || '';
+
+        if (!wakatimeApiKey) {
+            return res.status(400).json({
+                error: 'WakaTime API key not configured',
+                message: 'Please set WAKATIME_API_KEY in environment variables or configure in user profile',
+            });
+        }
+
         const result = await fetchWakaTimeData(userId, wakatimeApiKey);
         res.json(result);
     } catch (err: any) {
         console.error('WakaTime API error:', err.response?.data || err.message);
         res.status(500).json({
             error: 'Failed to fetch WakaTime data',
-            details: err.response?.data?.message || err.message,
+            message: err.response?.data?.message || err.message,
         });
     }
 });
